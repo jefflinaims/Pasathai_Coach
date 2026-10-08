@@ -385,6 +385,50 @@ const CARDS = [
   { id: 'n803', thai: 'ป้า',   roman: 'baa3',  meaning: '阿姨', group: 'G8' },
 ].map(c => ({ category: 'near', mnemonic: '', scene: '', verified: false, ...c }));
 
+// 課堂單字（取自老師講義）
+const CLASS_WORDS = [
+  { id: 'c01', thai: 'สวย',      roman: 'suei5',      meaning: '漂亮' },
+  { id: 'c02', thai: 'นิดหน่อย', roman: 'nit4nɔi2',   meaning: '一點點' },
+  { id: 'c03', thai: 'มาก',      roman: 'maak3',      meaning: '很' },
+  { id: 'c04', thai: 'มากๆ',     roman: 'maak3 maak3', meaning: '非常' },
+  { id: 'c05', thai: 'ไม่',      roman: 'mai3',       meaning: '不' },
+  { id: 'c06', thai: 'ไม่ค่อย',  roman: 'mai3 kɔi3',  meaning: '不太' },
+  { id: 'c07', thai: 'ปลา',      roman: 'blaa',       meaning: '魚' },
+  { id: 'c08', thai: 'ขวา',      roman: 'kwaa5',      meaning: '右' },
+  { id: 'c09', thai: 'ครับ',     roman: 'krap4',      meaning: '句尾禮貌語（男性）' },
+  { id: 'c10', thai: 'สวัสดี',   roman: 'sa.wat2ḍii', meaning: '你好' },
+  { id: 'c11', thai: 'ชอบ',      roman: 'chɔɔp3',     meaning: '喜歡' },
+  { id: 'c12', thai: 'คิด',      roman: 'kit4',       meaning: '想' },
+  { id: 'c13', thai: 'สาม',      roman: 'saam5',      meaning: '三' },
+].map(c => ({ category: 'class', group: '', mnemonic: '', scene: '', verified: true, ...c }));
+
+// 工廠實用句（泰文為 AI 初稿，待老師校對）
+const FACTORY = [
+  { id: 'f01', scene: '品質', meaning: '幫不良品集中分類，等找出原因再報廢',
+    thai: 'ช่วยแยกของเสียไว้ที่เดียวกัน หาสาเหตุให้เจอก่อนแล้วค่อยทิ้ง',
+    roman: 'chuei3 yεεk3 kɔɔng5 sia5 wai4 tii3 ḍiau gan / haa5 saa5.heet2 hai3 jəə gɔɔn2 lεεu4 kɔi3 ting4' },
+  { id: 'f02', scene: '製程', meaning: '要依操作標準生產',
+    thai: 'ต้องผลิตตามมาตรฐานการทำงาน',
+    roman: 'dɔng3 pa2.lit2 daam maat3.dra2.taan5 gaan tam.ngaan' },
+  { id: 'f03', scene: '製程', meaning: '注意鐵水澆鑄溫度',
+    thai: 'ระวังอุณหภูมิตอนเทน้ำเหล็ก',
+    roman: 'ra4.wang un.ha2.puum dɔɔn tee naam4 lek2' },
+  { id: 'f04', scene: '製程', meaning: '注意混練砂水分及黏土量',
+    thai: 'ระวังความชื้นและปริมาณดินเหนียวในทรายผสม',
+    roman: 'ra4.wang kwaam chɯɯn4 lε4 ba2.ri4.maan ḍin niau5 nai saai pa2.som5' },
+  { id: 'f05', scene: '管理', meaning: '假日不要過度加班',
+    thai: 'วันหยุดอย่าทำโอทีมากเกินไป',
+    roman: 'wan yut2 yaa2 tam oo.tii maak3 gəən bai' },
+  { id: 'f06', scene: '品質', meaning: '鑄件毛邊不要過度研磨',
+    thai: 'อย่าเจียรครีบงานหล่อมากเกินไป',
+    roman: 'yaa2 jian kriip3 ngaan lɔɔ2 maak3 gəən bai' },
+  { id: 'f07', scene: '品質', meaning: '不良品要用紅色箱子另外存放',
+    thai: 'ของเสียต้องแยกเก็บไว้ในลังสีแดง',
+    roman: 'kɔɔng5 sia5 dɔng3 yεεk3 gep2 wai4 nai lang sii5 ḍεεng' },
+].map(c => ({ category: 'factory', group: '', mnemonic: '', verified: false, ...c }));
+
+const ALL_CARDS = [...CARDS, ...CLASS_WORDS, ...FACTORY];
+
 const byGroup = g => CARDS.filter(c => c.group === g);
 
 /* =========================================================
@@ -395,10 +439,10 @@ const TONES = {
   2: { mark: 'ˇ',         name: '低調',   hint: '像三聲前半，只往下',     ex: 'maa2' },
   3: { mark: 'ˋ',         name: '降調',   hint: '像四聲，先略升再降',     ex: 'maa3' },
   4: { mark: '~',         name: '高調',   hint: '比一聲更高，尾音微揚',   ex: 'maa4' },
-  5: { mark: '✓︎',   name: '上升調', hint: '像二聲，先沉再升',       ex: 'maa5' },
+  5: { mark: '✓\uFE0E',   name: '上升調', hint: '像二聲，先沉再升',       ex: 'maa5' },
 };
 
-const MACRON = '̄';
+const MACRON = '\u0304';
 const LONG_VOWELS = [
   ['aa', 'ā'], ['ii', 'ī'], ['uu', 'ū'], ['ee', 'ē'], ['oo', 'ō'],
   ['ɔɔ', 'ɔ' + MACRON], ['əə', 'ə' + MACRON], ['ɯɯ', 'ɯ' + MACRON], ['εε', 'ε' + MACRON],
@@ -477,29 +521,79 @@ function recordAnswer(card, right) {
 }
 
 /* =========================================================
- * 語音（Web Speech API, th-TH）
+ * 發音：內建錄音優先，瀏覽器語音合成（th-TH）備援
+ * 內建錄音由 tools/make_audio.py 產生，以 base64 內嵌在檔案最後的
+ * window.PASATHAI_AUDIO（以泰文為鍵）。
  * ========================================================= */
+const builtinAudio = () => window.PASATHAI_AUDIO || {};
+const hasBuiltinAudio = text => Object.prototype.hasOwnProperty.call(builtinAudio(), text);
+
 const Speech = {
   supported: 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window,
   voice: null,
+  voicesLoaded: false,
   token: 0,
+  audio: null,
+  pending: null,
 
   init() {
-    if (!this.supported) { showVoiceNotice('這個瀏覽器不支援語音合成，無法播放發音。請改用 Chrome 或 Safari。'); return; }
+    if (!this.supported) return;
     const pick = () => {
       const voices = speechSynthesis.getVoices();
       this.voice = voices.find(v => /^th[-_]?/i.test(v.lang)) || null;
-      return voices.length > 0;
+      this.voicesLoaded = voices.length > 0;
     };
     pick();
-    speechSynthesis.addEventListener?.('voiceschanged', () => { pick(); checkVoice(); });
+    speechSynthesis.addEventListener?.('voiceschanged', pick);
     // 部分瀏覽器的語音清單要稍後才會載入
-    setTimeout(() => { pick(); checkVoice(); }, 1500);
+    setTimeout(pick, 1500);
   },
 
-  speakOne(text, rate, myToken) {
+  /** 共用同一個 <audio>，iOS 在第一次點擊播放後，後續的連續播放才不會被擋 */
+  audioEl() {
+    if (!this.audio) {
+      this.audio = new Audio();
+      this.audio.preload = 'auto';
+    }
+    return this.audio;
+  },
+
+  playAudio(text, rate, myToken) {
     return new Promise(resolve => {
-      if (!this.supported || myToken !== this.token) return resolve();
+      if (myToken !== this.token) return resolve();
+      const a = this.audioEl();
+      const timers = [];
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        timers.forEach(clearTimeout);
+        if (this.pending === finish) this.pending = null;
+        resolve();
+      };
+      this.pending = finish;
+      a.onended = finish;
+      a.onerror = finish;
+      a.onloadedmetadata = () => {
+        a.playbackRate = rate;   // 部分瀏覽器載入後會重設速度
+        if (isFinite(a.duration)) timers.push(setTimeout(finish, a.duration / rate * 1000 + 1500));
+      };
+      a.src = 'data:audio/mpeg;base64,' + builtinAudio()[text];
+      // 變速時保持音高不變
+      a.preservesPitch = a.mozPreservesPitch = a.webkitPreservesPitch = true;
+      a.defaultPlaybackRate = rate;
+      a.playbackRate = rate;
+      timers.push(setTimeout(finish, 30000));
+      const p = a.play();
+      if (p && p.catch) p.catch(finish);
+    });
+  },
+
+  speakTTS(text, rate, myToken) {
+    return new Promise(resolve => {
+      if (myToken !== this.token) return resolve();
+      if (!this.supported || (this.voicesLoaded && !this.voice)) showVoiceNotice();
+      if (!this.supported) return resolve();
       const u = new SpeechSynthesisUtterance(text);
       u.lang = 'th-TH';
       if (this.voice) u.voice = this.voice;
@@ -514,11 +608,14 @@ const Speech = {
     });
   },
 
-  /** 依序播放；新的播放會中斷前一個。items: [{text, onStart}] */
+  speakOne(text, rate, myToken) {
+    return hasBuiltinAudio(text) ? this.playAudio(text, rate, myToken) : this.speakTTS(text, rate, myToken);
+  },
+
+  /** 依序播放；新的播放會中斷前一個。items: [{text, onStart, onEnd}] */
   async play(items, rate = 1) {
-    if (!this.supported) return;
-    const myToken = ++this.token;
-    speechSynthesis.cancel();
+    this.stop();
+    const myToken = this.token;
     for (let i = 0; i < items.length; i++) {
       if (myToken !== this.token) return;
       items[i].onStart?.();
@@ -528,22 +625,23 @@ const Speech = {
     if (myToken === this.token) items.at(-1)?.onEnd?.();
   },
 
-  stop() { this.token++; if (this.supported) speechSynthesis.cancel(); },
+  stop() {
+    this.token++;
+    if (this.audio) this.audio.pause();
+    this.pending?.();
+    if (this.supported) speechSynthesis.cancel();
+  },
 };
 
-function showVoiceNotice(msg) {
+/** 只有在需要用瀏覽器語音（沒有內建錄音的字）卻找不到泰語語音時才提示 */
+function showVoiceNotice() {
   const el = document.getElementById('voice-notice');
-  el.textContent = msg;
-  el.hidden = false;
-}
-function checkVoice() {
-  if (Speech.supported && !Speech.voice && speechSynthesis.getVoices().length) {
-    showVoiceNotice('這台裝置找不到泰語語音，可能無法播放發音。' +
+  el.textContent = Speech.supported
+    ? '這個字沒有內建錄音，而這台裝置找不到泰語語音，可能無法播放。' +
       'iPhone：設定 → 輔助使用 → 朗讀內容 → 聲音 → 泰文，下載語音。' +
-      'Android：設定 → 文字轉語音 → Google 語音辨識與合成 → 安裝語音資料 → 泰文。');
-  } else if (Speech.voice) {
-    document.getElementById('voice-notice').hidden = true;
-  }
+      'Android：設定 → 文字轉語音 → Google 語音辨識與合成 → 安裝語音資料 → 泰文。'
+    : '這個字沒有內建錄音，而這個瀏覽器不支援語音合成，無法播放。';
+  el.hidden = false;
 }
 
 /* =========================================================
@@ -877,6 +975,12 @@ $('near-result').addEventListener('click', e => {
 });
 window.addEventListener('hashchange', () => { if (location.hash === '#near') resetNear(); route(); });
 route();
+</script>
+<script>
+/* AUDIO:BEGIN 內建錄音，由 tools/make_audio.py 產生，請勿手動編輯 */
+window.PASATHAI_AUDIO = {
+};
+/* AUDIO:END */
 </script>
 </body>
 </html>
