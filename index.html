@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#00695C">
+<title>泰語聲調通</title>
+<style>
+  :root {
+    /* 聲調顏色（SPEC 第 4 節） */
+    --t1: #2E7D32;  /* 1 中平調 綠 */
+    --t2: #1565C0;  /* 2 低調   藍 */
+    --t3: #C62828;  /* 3 降調   紅 */
+    --t4: #EF6C00;  /* 4 高調   橙 */
+    --t5: #6A1B9A;  /* 5 上升調 紫 */
+
+    --bg: #F7F6F2;
+    --card: #FFFFFF;
+    --ink: #1B1B1B;
+    --muted: #55595F;
+    --line: #D9D7D0;
+    --accent: #00695C;
+    --accent-soft: #E0F2EF;
+    --ok: #2E7D32;
+    --ok-soft: #E8F5E9;
+    --bad: #C62828;
+    --bad-soft: #FDECEA;
+    --warn-soft: #FFF4E0;
+    --nav-h: 68px;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Noto Sans TC",
+                 "Microsoft JhengHei", "Noto Sans Thai", "Leelawadee UI", sans-serif;
+    font-size: 18px;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  [hidden] { display: none !important; }
+
+  /* ---------- 版面骨架 ---------- */
+  .app { min-height: 100vh; }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 16px; padding-top: calc(10px + env(safe-area-inset-top));
+    background: var(--card); border-bottom: 1px solid var(--line);
+  }
+  .brand { font-size: 20px; font-weight: 700; color: var(--accent); }
+  .brand small { display: block; font-size: 13px; font-weight: 400; color: var(--muted); }
+
+  .toggle {
+    min-height: 48px; min-width: 48px; padding: 0 14px;
+    border: 2px solid var(--accent); border-radius: 999px;
+    background: var(--card); color: var(--accent); font-size: 16px; font-weight: 600;
+  }
+  .toggle[aria-pressed="false"] { background: var(--accent); color: #fff; }
+
+  main {
+    padding: 16px 16px calc(var(--nav-h) + 24px + env(safe-area-inset-bottom));
+    max-width: 760px; margin: 0 auto;
+  }
+
+  /* 手機：底部分頁列 */
+  .nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    display: flex; background: var(--card); border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav .nav-title { display: none; }
+  .nav a {
+    flex: 1; min-height: var(--nav-h);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    color: var(--muted); text-decoration: none; font-size: 13px;
+  }
+  .nav a .ic { font-size: 24px; line-height: 1; }
+  .nav a[aria-current="page"] { color: var(--accent); font-weight: 700; }
+  .nav a[aria-current="page"] .ic { transform: scale(1.1); }
+  .nav a.desk-only { display: none; }
+
+  /* 電腦：左側選單 */
+  @media (min-width: 900px) {
+    .app { display: grid; grid-template-columns: 230px 1fr; }
+    .nav {
+      position: sticky; top: 0; height: 100vh; grid-row: 1 / span 2;
+      flex-direction: column; border-top: 0; border-right: 1px solid var(--line);
+      padding: 20px 12px;
+    }
+    .nav .nav-title { display: block; font-size: 22px; font-weight: 700; color: var(--accent); padding: 4px 12px 20px; }
+    .nav .nav-title small { display: block; font-size: 14px; font-weight: 400; color: var(--muted); }
+    .nav a, .nav a.desk-only {
+      flex: 0 0 auto; display: flex; flex-direction: row; justify-content: flex-start; gap: 12px;
+      min-height: 52px; padding: 0 14px; border-radius: 10px; font-size: 17px;
+    }
+    .nav a .ic { font-size: 22px; }
+    .nav a:hover { background: var(--bg); }
+    .nav a[aria-current="page"] { background: var(--accent-soft); }
+    .nav a[aria-current="page"] .ic { transform: none; }
+    .topbar { grid-column: 2; }
+    .topbar .brand { visibility: hidden; }
+    main { grid-column: 2; padding: 28px 32px 48px; }
+  }
+
+  /* ---------- 通用元件 ---------- */
+  h1 { font-size: 26px; margin: 4px 0 12px; }
+  h2 { font-size: 20px; margin: 24px 0 10px; }
+  p { margin: 8px 0; }
+  .muted { color: var(--muted); }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px; margin: 12px 0;
+  }
+  .btn {
+    min-height: 52px; min-width: 48px; padding: 0 20px;
+    border: 2px solid var(--accent); border-radius: 12px;
+    background: var(--card); color: var(--accent); font-weight: 600; font-size: 18px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.block { width: 100%; }
+  .btn:active { transform: translateY(1px); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row > .btn { flex: 1 1 140px; }
+  .notice {
+    background: var(--warn-soft); border: 1px solid #F0C27A; border-radius: 12px;
+    padding: 12px 14px; font-size: 16px; margin: 12px 0;
+  }
+  .badge {
+    display: inline-block; font-size: 13px; padding: 1px 8px; border-radius: 999px;
+    background: var(--warn-soft); color: #8A5300; vertical-align: middle; font-weight: 400;
+  }
+
+  /* ---------- 拼音與聲調 ---------- */
+  .rom { font-size: 30px; font-weight: 600; letter-spacing: .3px; line-height: 1.3; word-break: break-word; }
+  .rom.sm { font-size: 22px; }
+  .syl { white-space: nowrap; }
+  .t1 { color: var(--t1); }
+  .t2 { color: var(--t2); }
+  .t3 { color: var(--t3); }
+  .t4 { color: var(--t4); }
+  .t5 { color: var(--t5); }
+  .tm { font-weight: 800; margin-left: 1px; }
+  .thai { font-size: 16px; color: var(--muted); font-family: "Noto Sans Thai", "Leelawadee UI", "Thonburi", sans-serif; }
+  body.hide-thai .thai, body.hide-thai .thai-h { display: none !important; }
+
+  .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+  .legend .tone {
+    border: 2px solid currentColor; border-radius: 12px; padding: 8px 10px; background: var(--card);
+  }
+  .legend .tone b { font-size: 24px; }
+  .legend .tone > span { display: block; font-size: 14px; color: var(--ink); }
+
+  /* ---------- 首頁 ---------- */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 8px; text-align: center; }
+  .stat .num { font-size: 28px; font-weight: 700; color: var(--accent); }
+  .stat .lbl { font-size: 14px; color: var(--muted); }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tile {
+    display: flex; flex-direction: column; gap: 4px; min-height: 88px; padding: 14px;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    color: var(--ink); text-decoration: none;
+  }
+  .tile .ic { font-size: 26px; }
+  .tile b { font-size: 18px; }
+  .tile small { color: var(--muted); font-size: 14px; }
+  @media (min-width: 900px) { .tiles.mobile-only { display: none; } }
+
+  /* ---------- F1 近音字 ---------- */
+  .progress { display: flex; justify-content: space-between; align-items: center; font-size: 16px; color: var(--muted); }
+  .bar { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; margin: 6px 0 14px; }
+  .bar > i { display: block; height: 100%; background: var(--accent); transition: width .25s; }
+  .ask { text-align: center; padding: 20px 16px; }
+  .ask .big { font-size: 56px; line-height: 1; }
+  .options { display: grid; gap: 10px; margin-top: 12px; }
+  @media (min-width: 600px) { .options { grid-template-columns: 1fr 1fr; } }
+  .opt {
+    position: relative; text-align: left; min-height: 96px; padding: 12px 16px;
+    background: var(--card); border: 2px solid var(--line); border-radius: var(--radius);
+  }
+  .opt .mean { font-size: 20px; }
+  .opt .tag { position: absolute; top: 8px; right: 10px; font-size: 14px; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+  .opt.correct { border-color: var(--ok); border-width: 4px; background: var(--ok-soft); }
+  .opt.correct .tag { background: var(--ok); color: #fff; }
+  .opt.wrong { border-color: var(--bad); border-width: 4px; background: var(--bad-soft); }
+  .opt.wrong .tag { background: var(--bad); color: #fff; }
+  .opt.playing { box-shadow: 0 0 0 4px rgba(0,105,92,.25); }
+  .feedback { border-radius: var(--radius); padding: 14px 16px; margin: 14px 0; font-size: 18px; }
+  .feedback.ok { background: var(--ok-soft); border: 2px solid var(--ok); }
+  .feedback.bad { background: var(--bad-soft); border: 2px solid var(--bad); }
+  .feedback .head { font-size: 22px; font-weight: 700; }
+  .group-list { display: grid; gap: 8px; }
+  .group-item { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .group-item .gid { font-weight: 700; color: var(--muted); min-width: 30px; }
+  .word-chip {
+    min-height: 48px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--card); display: inline-flex; flex-direction: column; align-items: flex-start; text-align: left;
+  }
+  .word-chip .rom { font-size: 22px; }
+  .word-chip .m { font-size: 14px; color: var(--muted); }
+  .score-big { font-size: 64px; font-weight: 800; color: var(--accent); text-align: center; line-height: 1.1; }
+
+  /* ---------- 拼音轉換 ---------- */
+  .field { width: 100%; min-height: 56px; font-size: 24px; padding: 8px 14px; border: 2px solid var(--line); border-radius: 12px; background: #fff; }
+  .field:focus { outline: none; border-color: var(--accent); }
+  .keys { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  .keys button { min-width: 52px; min-height: 52px; font-size: 24px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  .preview { min-height: 64px; display: flex; align-items: center; padding: 8px 14px; background: var(--card); border: 1px dashed var(--line); border-radius: 12px; }
+  .preview .rom { font-size: 36px; }
+  table.ex { width: 100%; border-collapse: collapse; font-size: 16px; }
+  table.ex td, table.ex th { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+  table.ex code { font-size: 17px; }
+  table.ex button { border: 0; background: none; padding: 0; text-align: left; min-height: 44px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">泰語聲調通<small>Pasathai Coach</small></div>
+    <button class="toggle" id="thai-toggle" aria-pressed="true">泰文：顯示</button>
+  </header>
+
+  <nav class="nav" id="nav" aria-label="主選單"></nav>
+
+  <main id="main">
+    <div class="notice" id="voice-notice" hidden></div>
+
+    <!-- 首頁 -->
+    <section data-view="home">
+      <h1><span class="thai-h">สวัสดี </span><span class="rom sm" data-roman="sa.wat2ḍii"></span></h1>
+      <div class="stats">
+        <div class="stat"><div class="num" id="st-due">—</div><div class="lbl">今日待複習</div></div>
+        <div class="stat"><div class="num" id="st-acc">—</div><div class="lbl">近 7 天近音字正確率</div></div>
+        <div class="stat"><div class="num" id="st-streak">0</div><div class="lbl">連續學習天數</div></div>
+      </div>
+      <p class="muted" style="font-size:14px">「今日待複習」會在 v2 單字卡完成後開始計算。</p>
+      <div style="margin:16px 0">
+        <a class="btn primary block" href="#near" style="text-decoration:none">👂 開始近音字測驗（10 題）</a>
+      </div>
+
+      <h2>五個聲調</h2>
+      <div class="legend" id="legend"></div>
+
+      <h2>更多</h2>
+      <div class="tiles mobile-only">
+        <a class="tile" href="#add"><span class="ic">✏️</span><b>新增單字</b><small>拼音轉換預覽</small></a>
+        <a class="tile" href="#progress"><span class="ic">📊</span><b>進度管理</b><small>匯出／匯入（v3）</small></a>
+      </div>
+    </section>
+
+    <!-- F1 近音字辨識 -->
+    <section data-view="near" hidden>
+      <div id="near-start">
+        <h1>近音字辨識</h1>
+        <p>聽發音，從同一組的近音字中選出你聽到的那一個。每輪 10 題。</p>
+        <button class="btn primary block" id="near-go">▶ 開始一輪</button>
+        <h2>題庫一覽 <span class="badge">泰文與拼音待老師校對</span></h2>
+        <p class="muted" style="font-size:15px">點一下字卡可以聽發音。</p>
+        <div class="group-list" id="group-list"></div>
+      </div>
+
+      <div id="near-quiz" hidden>
+        <div class="progress"><span id="q-count"></span><span id="q-score"></span></div>
+        <div class="bar"><i id="q-bar"></i></div>
+        <div class="card ask">
+          <div class="big">🔊</div>
+          <p class="muted" id="q-group"></p>
+          <div class="row">
+            <button class="btn" id="q-replay">🔁 再聽一次</button>
+            <button class="btn" id="q-slow">🐢 慢速 0.6×</button>
+          </div>
+        </div>
+        <div class="options" id="q-options"></div>
+        <div id="q-feedback"></div>
+        <button class="btn primary block" id="q-next" hidden>下一題 →</button>
+        <p style="text-align:center"><button class="btn" id="q-quit" style="border:0;font-weight:400;color:var(--muted)">結束這一輪</button></p>
+      </div>
+
+      <div id="near-result" hidden></div>
+    </section>
+
+    <!-- F2 單字卡（v2） -->
+    <section data-view="cards" hidden>
+      <h1>單字卡</h1>
+      <div class="card">
+        <p><span class="badge">v2 製作中</span></p>
+        <p>5 盒式間隔複習（0／1／3／7／14 天）。可切換「看中文想泰語」與「看拼音想中文」，翻面自動播放發音。</p>
+      </div>
+    </section>
+
+    <!-- F3 口說跟讀（v2） -->
+    <section data-view="speak" hidden>
+      <h1>口說跟讀</h1>
+      <div class="card">
+        <p><span class="badge">v2 製作中</span></p>
+        <p>正常速／慢速播放後留 3 秒跟念；支援的瀏覽器可用「我念念看」比對發音。</p>
+      </div>
+    </section>
+
+    <!-- F4 工廠實用句（v3） -->
+    <section data-view="factory" hidden>
+      <h1>工廠實用句</h1>
+      <div class="card">
+        <p><span class="badge">v3 製作中</span></p>
+        <p>依情境（品質／製程／管理）瀏覽 7 句工廠用語，點一下播放，並可加入複習。</p>
+      </div>
+    </section>
+
+    <!-- F5 新增單字：v1 先提供拼音轉換預覽 -->
+    <section data-view="add" hidden>
+      <h1>新增單字</h1>
+      <p class="muted">v1 先提供拼音轉換預覽；表單儲存功能在 v3 加入。</p>
+      <label for="conv-in"><b>輸入碼</b>（聲調寫數字 1–5，長音雙寫母音）</label>
+      <input class="field" id="conv-in" type="text" value="kwaa5"
+             autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <div class="keys" id="conv-keys"></div>
+      <div class="preview" aria-live="polite"><span class="rom" id="conv-out"></span></div>
+
+      <h2>轉換規則</h2>
+      <table class="ex">
+        <tr><th>輸入</th><th>顯示</th><th>說明</th></tr>
+        <tbody id="conv-ex"></tbody>
+      </table>
+      <h2>聲調對照</h2>
+      <div class="legend" id="legend2"></div>
+    </section>
+
+    <!-- F6 進度管理（v3） -->
+    <section data-view="progress" hidden>
+      <h1>進度管理</h1>
+      <div class="card">
+        <p><span class="badge">v3 製作中</span></p>
+        <p>匯出／匯入 JSON，在手機與電腦之間搬移進度；全部重設需再次確認。</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+'use strict';
+
+/* =========================================================
+ * 資料（SPEC 第 5、8 節）
+ * roman 為輸入碼：長音雙寫、聲調數字 1–5（1 可省略）
+ * ========================================================= */
+const NEAR_GROUPS = {
+  G1: '飯／新聞／白',
+  G2: '遠／近',
+  G3: '來／馬／狗',
+  G4: '老虎／衣服',
+  G5: '新／嗎／木頭／不',
+  G6: '雞／蛋（送氣對比）',
+  G7: '鐵／小',
+  G8: '丟／森林／阿姨',
+};
+
+const CARDS = [
+  { id: 'n101', thai: 'ข้าว',  roman: 'kaau3', meaning: '飯',   group: 'G1' },
+  { id: 'n102', thai: 'ข่าว',  roman: 'kaau2', meaning: '新聞', group: 'G1' },
+  { id: 'n103', thai: 'ขาว',   roman: 'kaau5', meaning: '白',   group: 'G1' },
+  { id: 'n201', thai: 'ไกล',   roman: 'glai',  meaning: '遠',   group: 'G2' },
+  { id: 'n202', thai: 'ใกล้',  roman: 'glai3', meaning: '近',   group: 'G2' },
+  { id: 'n301', thai: 'มา',    roman: 'maa',   meaning: '來',   group: 'G3' },
+  { id: 'n302', thai: 'ม้า',   roman: 'maa4',  meaning: '馬',   group: 'G3' },
+  { id: 'n303', thai: 'หมา',   roman: 'maa5',  meaning: '狗',   group: 'G3' },
+  { id: 'n401', thai: 'เสือ',  roman: 'sɯa5',  meaning: '老虎', group: 'G4' },
+  { id: 'n402', thai: 'เสื้อ', roman: 'sɯa3',  meaning: '衣服', group: 'G4' },
+  { id: 'n501', thai: 'ใหม่',  roman: 'mai2',  meaning: '新',   group: 'G5' },
+  { id: 'n502', thai: 'ไหม',   roman: 'mai5',  meaning: '嗎',   group: 'G5' },
+  { id: 'n503', thai: 'ไม้',   roman: 'mai4',  meaning: '木頭', group: 'G5' },
+  { id: 'n504', thai: 'ไม่',   roman: 'mai3',  meaning: '不',   group: 'G5' },
+  { id: 'n601', thai: 'ไก่',   roman: 'gai2',  meaning: '雞',   group: 'G6' },
+  { id: 'n602', thai: 'ไข่',   roman: 'kai2',  meaning: '蛋',   group: 'G6' },
+  { id: 'n701', thai: 'เหล็ก', roman: 'lek2',  meaning: '鐵',   group: 'G7' },
+  { id: 'n702', thai: 'เล็ก',  roman: 'lek4',  meaning: '小',   group: 'G7' },
+  { id: 'n801', thai: 'ปา',    roman: 'baa',   meaning: '丟',   group: 'G8' },
+  { id: 'n802', thai: 'ป่า',   roman: 'baa2',  meaning: '森林', group: 'G8' },
+  { id: 'n803', thai: 'ป้า',   roman: 'baa3',  meaning: '阿姨', group: 'G8' },
+].map(c => ({ category: 'near', mnemonic: '', scene: '', verified: false, ...c }));
+
+const byGroup = g => CARDS.filter(c => c.group === g);
+
+/* =========================================================
+ * 拼音轉換（SPEC 第 4 節）
+ * ========================================================= */
+const TONES = {
+  1: { mark: '',          name: '中平調', hint: '像一聲，音高放低、平穩', ex: 'maa' },
+  2: { mark: 'ˇ',         name: '低調',   hint: '像三聲前半，只往下',     ex: 'maa2' },
+  3: { mark: 'ˋ',         name: '降調',   hint: '像四聲，先略升再降',     ex: 'maa3' },
+  4: { mark: '~',         name: '高調',   hint: '比一聲更高，尾音微揚',   ex: 'maa4' },
+  5: { mark: '✓︎',   name: '上升調', hint: '像二聲，先沉再升',       ex: 'maa5' },
+};
+
+const MACRON = '̄';
+const LONG_VOWELS = [
+  ['aa', 'ā'], ['ii', 'ī'], ['uu', 'ū'], ['ee', 'ē'], ['oo', 'ō'],
+  ['ɔɔ', 'ɔ' + MACRON], ['əə', 'ə' + MACRON], ['ɯɯ', 'ɯ' + MACRON], ['εε', 'ε' + MACRON],
+];
+const SEPARATORS = new Set(['.', ' ', '/', '-']);
+
+/** 輸入碼 → [{type:'syl', text, tone} | {type:'sep', text}] */
+function parseRoman(code) {
+  let s = String(code || '').normalize('NFC').toLowerCase()
+    .replace(/ɛ/g, 'ε');                    // 拉丁 ɛ 視同講義的 ε
+  for (const [from, to] of LONG_VOWELS) s = s.split(from).join(to);
+
+  const out = [];
+  let buf = '';
+  const flush = tone => {
+    if (buf) out.push({ type: 'syl', text: buf, tone });
+    buf = '';
+  };
+  for (const ch of s) {
+    if (ch >= '1' && ch <= '5') flush(Number(ch));
+    else if (SEPARATORS.has(ch)) { flush(1); out.push({ type: 'sep', text: ch }); }
+    else buf += ch;
+  }
+  flush(1);
+  return out;
+}
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/** 輸入碼 → 老師寫法的純文字，例如 kaau3 → kāuˋ */
+function romanText(code) {
+  return parseRoman(code).map(t => t.type === 'syl' ? t.text + TONES[t.tone].mark : t.text).join('');
+}
+
+/** 輸入碼 → 依聲調上色的 HTML */
+function romanHTML(code) {
+  return parseRoman(code).map(t => {
+    if (t.type === 'sep') return t.text === '/' ? ' / ' : esc(t.text);
+    const mark = TONES[t.tone].mark;
+    return `<span class="syl t${t.tone}" title="第 ${t.tone} 調 ${TONES[t.tone].name}">${esc(t.text)}` +
+           (mark ? `<span class="tm">${mark}</span>` : '') + '</span>';
+  }).join('');
+}
+
+/* =========================================================
+ * 儲存（localStorage，失敗時仍可使用）
+ * ========================================================= */
+const STORE_KEY = 'pasathai-coach';
+const store = (() => {
+  const base = { version: 1, settings: { showThai: true }, stats: {}, daily: {} };
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (saved && typeof saved === 'object') {
+      return { ...base, ...saved, settings: { ...base.settings, ...saved.settings } };
+    }
+  } catch (e) { /* 無法讀取時用預設值 */ }
+  return base;
+})();
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) { /* 忽略 */ }
+}
+
+function dateKey(d = new Date()) {
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+function daysAgo(n) { const d = new Date(); d.setDate(d.getDate() - n); return dateKey(d); }
+
+function recordAnswer(card, right) {
+  const st = store.stats[card.id] || (store.stats[card.id] = { right: 0, wrong: 0 });
+  right ? st.right++ : st.wrong++;
+  const day = store.daily[dateKey()] || (store.daily[dateKey()] = { right: 0, total: 0 });
+  day.total++;
+  if (right) day.right++;
+  save();
+}
+
+/* =========================================================
+ * 語音（Web Speech API, th-TH）
+ * ========================================================= */
+const Speech = {
+  supported: 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window,
+  voice: null,
+  token: 0,
+
+  init() {
+    if (!this.supported) { showVoiceNotice('這個瀏覽器不支援語音合成，無法播放發音。請改用 Chrome 或 Safari。'); return; }
+    const pick = () => {
+      const voices = speechSynthesis.getVoices();
+      this.voice = voices.find(v => /^th[-_]?/i.test(v.lang)) || null;
+      return voices.length > 0;
+    };
+    pick();
+    speechSynthesis.addEventListener?.('voiceschanged', () => { pick(); checkVoice(); });
+    // 部分瀏覽器的語音清單要稍後才會載入
+    setTimeout(() => { pick(); checkVoice(); }, 1500);
+  },
+
+  speakOne(text, rate, myToken) {
+    return new Promise(resolve => {
+      if (!this.supported || myToken !== this.token) return resolve();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'th-TH';
+      if (this.voice) u.voice = this.voice;
+      u.rate = rate;
+      let done = false;
+      const finish = () => { if (!done) { done = true; resolve(); } };
+      u.onend = finish;
+      u.onerror = finish;
+      // Safari 偶爾不觸發 onend，設保險時限
+      setTimeout(finish, 2500 + text.length * 400 / rate);
+      speechSynthesis.speak(u);
+    });
+  },
+
+  /** 依序播放；新的播放會中斷前一個。items: [{text, onStart}] */
+  async play(items, rate = 1) {
+    if (!this.supported) return;
+    const myToken = ++this.token;
+    speechSynthesis.cancel();
+    for (let i = 0; i < items.length; i++) {
+      if (myToken !== this.token) return;
+      items[i].onStart?.();
+      await this.speakOne(items[i].text, rate, myToken);
+      if (i < items.length - 1) await new Promise(r => setTimeout(r, 600));
+    }
+    if (myToken === this.token) items.at(-1)?.onEnd?.();
+  },
+
+  stop() { this.token++; if (this.supported) speechSynthesis.cancel(); },
+};
+
+function showVoiceNotice(msg) {
+  const el = document.getElementById('voice-notice');
+  el.textContent = msg;
+  el.hidden = false;
+}
+function checkVoice() {
+  if (Speech.supported && !Speech.voice && speechSynthesis.getVoices().length) {
+    showVoiceNotice('這台裝置找不到泰語語音，可能無法播放發音。' +
+      'iPhone：設定 → 輔助使用 → 朗讀內容 → 聲音 → 泰文，下載語音。' +
+      'Android：設定 → 文字轉語音 → Google 語音辨識與合成 → 安裝語音資料 → 泰文。');
+  } else if (Speech.voice) {
+    document.getElementById('voice-notice').hidden = true;
+  }
+}
+
+/* =========================================================
+ * 版面：導覽與路由
+ * ========================================================= */
+const NAV = [
+  { id: 'home',     ic: '🏠', label: '首頁' },
+  { id: 'near',     ic: '👂', label: '近音字' },
+  { id: 'cards',    ic: '🃏', label: '單字卡' },
+  { id: 'speak',    ic: '🗣️', label: '跟讀' },
+  { id: 'factory',  ic: '🏭', label: '工廠' },
+  { id: 'add',      ic: '✏️', label: '新增單字', desk: true },
+  { id: 'progress', ic: '📊', label: '進度管理', desk: true },
+];
+
+function renderNav() {
+  document.getElementById('nav').innerHTML =
+    '<div class="nav-title">泰語聲調通<small>Pasathai Coach</small></div>' +
+    NAV.map(n => `<a href="#${n.id}" data-nav="${n.id}"${n.desk ? ' class="desk-only"' : ''}>` +
+                 `<span class="ic" aria-hidden="true">${n.ic}</span><span>${n.label}</span></a>`).join('');
+}
+
+function route() {
+  const id = (location.hash.slice(1) || 'home');
+  const view = NAV.some(n => n.id === id) ? id : 'home';
+  document.querySelectorAll('[data-view]').forEach(s => { s.hidden = s.dataset.view !== view; });
+  document.querySelectorAll('[data-nav]').forEach(a => {
+    if (a.dataset.nav === view) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
+  if (view !== 'near') { Speech.stop(); }
+  if (view === 'home') renderHome();
+  window.scrollTo(0, 0);
+}
+
+/* ---------- 泰文顯示開關 ---------- */
+function applyThai() {
+  const on = store.settings.showThai;
+  document.body.classList.toggle('hide-thai', !on);
+  const btn = document.getElementById('thai-toggle');
+  btn.textContent = on ? '泰文：顯示' : '泰文：隱藏';
+  btn.setAttribute('aria-pressed', String(on));
+}
+
+/* ---------- 共用：聲調圖例、data-roman ---------- */
+function renderLegend(el) {
+  el.innerHTML = Object.entries(TONES).map(([n, t]) =>
+    `<div class="tone t${n}"><b>${n}</b> ${t.mark || '（不標）'}` +
+    `<span><b class="t${n}" style="font-size:16px">${t.name}</b>　${romanHTML(t.ex)}</span>` +
+    `<span class="muted">${t.hint}</span></div>`).join('');
+}
+function fillRoman(root = document) {
+  root.querySelectorAll('[data-roman]').forEach(el => { el.innerHTML = romanHTML(el.dataset.roman); });
+}
+
+/* =========================================================
+ * 首頁
+ * ========================================================= */
+function renderHome() {
+  let right = 0, total = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = store.daily[daysAgo(i)];
+    if (d) { right += d.right; total += d.total; }
+  }
+  document.getElementById('st-acc').textContent = total ? Math.round(right / total * 100) + '%' : '—';
+
+  let streak = 0;
+  let i = store.daily[daysAgo(0)] ? 0 : 1;      // 今天還沒練習時，從昨天往回算
+  while (store.daily[daysAgo(i)]) { streak++; i++; }
+  document.getElementById('st-streak').textContent = streak;
+}
+
+/* =========================================================
+ * F1 近音字辨識
+ * ========================================================= */
+const ROUND_SIZE = 10;
+const SLOW_RATE = 0.6;
+const quiz = { qs: [], i: 0, right: 0, answered: false, wrongs: [] };
+const $ = id => document.getElementById(id);
+
+function shuffle(a) {
+  a = a.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+const pickOne = a => a[Math.floor(Math.random() * a.length)];
+
+function renderGroupList() {
+  $('group-list').innerHTML = Object.entries(NEAR_GROUPS).map(([g, label]) =>
+    `<div class="card group-item"><span class="gid">${g}</span>` +
+    byGroup(g).map(c =>
+      `<button class="word-chip" data-play="${c.id}"><span class="rom">${romanHTML(c.roman)}</span>` +
+      `<span class="m">${esc(c.meaning)} <span class="thai">${esc(c.thai)}</span></span></button>`).join('') +
+    `</div>`).join('');
+}
+
+function buildQuestions(onlyGroup) {
+  // 各組輪流出題，讓 10 題盡量涵蓋 8 組
+  let groups = onlyGroup ? [onlyGroup] : [];
+  while (!onlyGroup && groups.length < ROUND_SIZE) groups = groups.concat(shuffle(Object.keys(NEAR_GROUPS)));
+  if (onlyGroup) groups = Array(ROUND_SIZE).fill(onlyGroup);
+  groups = groups.slice(0, ROUND_SIZE);
+
+  const qs = [];
+  for (const g of groups) {
+    const words = byGroup(g);
+    const prev = qs.at(-1)?.answer;
+    let answer = pickOne(words);
+    if (prev && answer.id === prev.id) answer = pickOne(words.filter(w => w.id !== prev.id));
+    qs.push({ group: g, options: words, answer });
+  }
+  return qs;
+}
+
+function startRound(onlyGroup) {
+  Object.assign(quiz, { qs: buildQuestions(onlyGroup), i: 0, right: 0, wrongs: [], onlyGroup });
+  $('near-start').hidden = true;
+  $('near-result').hidden = true;
+  $('near-quiz').hidden = false;
+  showQuestion();
+}
+
+function showQuestion() {
+  const q = quiz.qs[quiz.i];
+  quiz.answered = false;
+  $('q-count').textContent = `第 ${quiz.i + 1} / ${quiz.qs.length} 題`;
+  $('q-score').textContent = `答對 ${quiz.right}`;
+  $('q-bar').style.width = (quiz.i / quiz.qs.length * 100) + '%';
+  $('q-group').textContent = `${q.group}・${NEAR_GROUPS[q.group]}：你聽到的是哪一個？`;
+  $('q-options').innerHTML = q.options.map((c, k) =>
+    `<button class="opt" data-k="${k}"><span class="tag"></span>` +
+    `<div class="rom">${romanHTML(c.roman)}</div>` +
+    `<div class="mean">${esc(c.meaning)}</div><div class="thai">${esc(c.thai)}</div></button>`).join('');
+  $('q-feedback').innerHTML = '';
+  $('q-next').hidden = true;
+  playAnswer(1);
+}
+
+function playAnswer(rate) {
+  Speech.play([{ text: quiz.qs[quiz.i].answer.thai }], rate);
+}
+
+function optButton(card) {
+  const k = quiz.qs[quiz.i].options.indexOf(card);
+  return $('q-options').querySelector(`[data-k="${k}"]`);
+}
+function highlightPlaying(card) {
+  $('q-options').querySelectorAll('.opt').forEach(b => b.classList.remove('playing'));
+  if (card) optButton(card)?.classList.add('playing');
+}
+
+function playCompare(correct, chosen, rate = 1) {
+  Speech.play([
+    { text: correct.thai, onStart: () => highlightPlaying(correct) },
+    { text: chosen.thai,  onStart: () => highlightPlaying(chosen), onEnd: () => highlightPlaying(null) },
+  ], rate);
+}
+
+function choose(k) {
+  const q = quiz.qs[quiz.i];
+  const chosen = q.options[k];
+
+  // 已作答：點選項就播放該字，方便對照
+  if (quiz.answered) {
+    Speech.play([{ text: chosen.thai, onStart: () => highlightPlaying(chosen), onEnd: () => highlightPlaying(null) }]);
+    return;
+  }
+  quiz.answered = true;
+  const ok = chosen.id === q.answer.id;
+  recordAnswer(q.answer, ok);
+  if (ok) quiz.right++;
+  else quiz.wrongs.push({ group: q.group, correct: q.answer, chosen });
+
+  const correctBtn = optButton(q.answer);
+  correctBtn.classList.add('correct');
+  correctBtn.querySelector('.tag').textContent = ok ? '✓ 答對' : '正確答案';
+  if (!ok) {
+    const b = optButton(chosen);
+    b.classList.add('wrong');
+    b.querySelector('.tag').textContent = '✗ 你選的';
+  }
+
+  const label = c => `<span class="rom sm">${romanHTML(c.roman)}</span> ${esc(c.meaning)}`;
+  $('q-feedback').innerHTML = ok
+    ? `<div class="feedback ok"><div class="head">✓ 答對了！</div>${label(q.answer)}</div>`
+    : `<div class="feedback bad"><div class="head">✗ 答錯了</div>` +
+      `<p>正確答案：${label(q.answer)}</p><p>你選的字：${label(chosen)}</p>` +
+      `<p class="muted" style="font-size:15px">正在依序播放：正確答案 → 你選的字。點選項可再聽單字。</p>` +
+      `<div class="row"><button class="btn" id="cmp-normal">🔁 再聽對照</button>` +
+      `<button class="btn" id="cmp-slow">🐢 慢速對照</button></div></div>`;
+  $('q-score').textContent = `答對 ${quiz.right}`;
+
+  if (ok) {
+    Speech.play([{ text: q.answer.thai }]);
+  } else {
+    playCompare(q.answer, chosen);
+    $('cmp-normal').onclick = () => playCompare(q.answer, chosen, 1);
+    $('cmp-slow').onclick = () => playCompare(q.answer, chosen, SLOW_RATE);
+  }
+
+  $('q-next').textContent = quiz.i === quiz.qs.length - 1 ? '看結果 →' : '下一題 →';
+  $('q-next').hidden = false;
+  $('q-bar').style.width = ((quiz.i + 1) / quiz.qs.length * 100) + '%';
+}
+
+function next() {
+  if (quiz.i < quiz.qs.length - 1) { quiz.i++; showQuestion(); }
+  else showResult();
+}
+
+function showResult() {
+  Speech.stop();
+  const total = quiz.i + (quiz.answered ? 1 : 0);
+  const pct = total ? Math.round(quiz.right / total * 100) : 0;
+
+  // 統計最常混淆的字組
+  const byG = {};
+  for (const w of quiz.wrongs) (byG[w.group] = byG[w.group] || []).push(w);
+  const max = Math.max(0, ...Object.values(byG).map(a => a.length));
+  const worst = Object.keys(byG).filter(g => byG[g].length === max);
+
+  let confusion;
+  if (!total) {
+    confusion = '<p>這一輪還沒有作答。</p>';
+  } else if (!quiz.wrongs.length) {
+    confusion = '<p>🎉 全部答對，沒有混淆的字組！</p>';
+  } else {
+    confusion = worst.map(g => {
+      const pairs = {};
+      for (const w of byG[g]) {
+        const key = w.correct.id + '>' + w.chosen.id;
+        (pairs[key] = pairs[key] || { ...w, n: 0 }).n++;
+      }
+      return `<div class="card"><p><b>${g}・${NEAR_GROUPS[g]}</b>　錯 ${max} 次</p>` +
+        Object.values(pairs).map(p =>
+          `<p>聽到 <span class="rom sm">${romanHTML(p.correct.roman)}</span> ${esc(p.correct.meaning)}` +
+          ` → 選成 <span class="rom sm">${romanHTML(p.chosen.roman)}</span> ${esc(p.chosen.meaning)}` +
+          (p.n > 1 ? `　×${p.n}` : '') + '</p>').join('') +
+        `<button class="btn block" data-drill="${g}">🎯 專練 ${g}（10 題）</button></div>`;
+    }).join('');
+  }
+
+  $('near-quiz').hidden = true;
+  $('near-result').hidden = false;
+  $('near-result').innerHTML =
+    `<h1>本輪結果</h1>` +
+    `<div class="card"><div class="score-big">${pct}%</div>` +
+    `<p style="text-align:center">答對 ${quiz.right} / ${total} 題` +
+    (quiz.onlyGroup ? `（專練 ${quiz.onlyGroup}）` : '') + `</p></div>` +
+    `<h2>最常混淆的字組</h2>${confusion}` +
+    `<div class="row" style="margin-top:16px">` +
+    `<button class="btn primary" id="r-again">▶ 再來一輪</button>` +
+    `<a class="btn" href="#home" style="text-decoration:none">回首頁</a></div>`;
+  $('r-again').onclick = () => startRound();
+}
+
+function resetNear() {
+  Speech.stop();
+  $('near-start').hidden = false;
+  $('near-quiz').hidden = true;
+  $('near-result').hidden = true;
+}
+
+/* =========================================================
+ * 拼音轉換預覽（F5 的一部分）
+ * ========================================================= */
+const SPECIAL_KEYS = ['ɔ', 'ə', 'ɯ', 'ε', 'ḍ', 'ḅ'];
+const EXAMPLES = [
+  ['kwaa5', '長音 aa → ā，第 5 調加 ✓'],
+  ['nit4nɔi2', '第 4 調 ~、第 2 調 ˇ'],
+  ['kaau3', '第 3 調 ˋ'],
+  ['maa', '第 1 調不標記號'],
+  ['sa.wat2ḍii', '多音節用「.」分隔'],
+  ['chɔɔp3', 'ɔɔ → ɔ̄'],
+];
+
+function setupConverter() {
+  const input = $('conv-in');
+  const update = () => { $('conv-out').innerHTML = romanHTML(input.value) || '<span class="muted" style="font-size:18px">（在上方輸入）</span>'; };
+  input.addEventListener('input', update);
+  $('conv-keys').innerHTML = SPECIAL_KEYS.map(k => `<button type="button" data-key="${k}">${k}</button>`).join('');
+  $('conv-keys').addEventListener('click', e => {
+    const k = e.target.closest('[data-key]')?.dataset.key;
+    if (!k) return;
+    const s = input.selectionStart ?? input.value.length, t = input.selectionEnd ?? s;
+    input.value = input.value.slice(0, s) + k + input.value.slice(t);
+    input.focus();
+    input.setSelectionRange(s + k.length, s + k.length);
+    update();
+  });
+  $('conv-ex').innerHTML = EXAMPLES.map(([code, note]) =>
+    `<tr><td><button type="button" data-ex="${esc(code)}"><code>${esc(code)}</code></button></td>` +
+    `<td><span class="rom sm">${romanHTML(code)}</span></td><td>${note}</td></tr>`).join('');
+  $('conv-ex').addEventListener('click', e => {
+    const code = e.target.closest('[data-ex]')?.dataset.ex;
+    if (code) { input.value = code; update(); }
+  });
+  update();
+}
+
+/* =========================================================
+ * 啟動
+ * ========================================================= */
+renderNav();
+renderLegend($('legend'));
+renderLegend($('legend2'));
+fillRoman();
+renderGroupList();
+setupConverter();
+applyThai();
+Speech.init();
+
+$('thai-toggle').onclick = () => { store.settings.showThai = !store.settings.showThai; save(); applyThai(); };
+$('near-go').onclick = () => startRound();
+$('q-replay').onclick = () => playAnswer(1);
+$('q-slow').onclick = () => playAnswer(SLOW_RATE);
+$('q-next').onclick = next;
+$('q-quit').onclick = () => (quiz.i > 0 || quiz.answered) ? showResult() : resetNear();
+$('q-options').addEventListener('click', e => {
+  const b = e.target.closest('[data-k]');
+  if (b) choose(Number(b.dataset.k));
+});
+$('group-list').addEventListener('click', e => {
+  const id = e.target.closest('[data-play]')?.dataset.play;
+  const c = CARDS.find(x => x.id === id);
+  if (c) Speech.play([{ text: c.thai }]);
+});
+$('near-result').addEventListener('click', e => {
+  const g = e.target.closest('[data-drill]')?.dataset.drill;
+  if (g) startRound(g);
+});
+window.addEventListener('hashchange', () => { if (location.hash === '#near') resetNear(); route(); });
+route();
+</script>
+</body>
+</html>
