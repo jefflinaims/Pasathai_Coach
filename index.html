@@ -75,12 +75,26 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
   .nav .nav-title { display: none; }
-  .nav a {
-    flex: 1; min-height: var(--nav-h);
+  .nav a, .nav .more-btn {
+    flex: 1 1 0; min-width: 0; min-height: var(--nav-h); white-space: nowrap;
+    background: none; border: 0; padding: 0; font-family: inherit;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
     color: var(--muted); text-decoration: none; font-size: 13px;
   }
-  .nav a .ic { font-size: 24px; line-height: 1; }
+  .nav a .ic, .nav .more-btn .ic { font-size: 24px; line-height: 1; }
+  .nav .more-btn[aria-current="page"], .nav .more-btn[aria-expanded="true"] { color: var(--accent); font-weight: 700; }
+  .more-sheet {
+    position: fixed; left: 8px; right: 8px; z-index: 19;
+    bottom: calc(var(--nav-h) + 8px + env(safe-area-inset-bottom));
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: 0 4px 16px rgba(0,0,0,.2); padding: 6px;
+  }
+  .more-sheet a {
+    display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 14px;
+    border-radius: 10px; color: var(--ink); text-decoration: none; font-size: 18px;
+  }
+  .more-sheet a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+  .more-sheet .ic { font-size: 24px; }
   .nav a[aria-current="page"] { color: var(--accent); font-weight: 700; }
   .nav a[aria-current="page"] .ic { transform: scale(1.1); }
   .nav a.desk-only { display: none; }
@@ -171,7 +185,7 @@
   .tile .ic { font-size: 26px; }
   .tile b { font-size: 18px; }
   .tile small { color: var(--muted); font-size: 14px; }
-  @media (min-width: 900px) { .tiles.mobile-only { display: none; } }
+  @media (min-width: 900px) { .tiles.mobile-only, .more-sheet, .more-btn { display: none !important; } }
 
   /* ---------- F1 近音字 ---------- */
   .progress { display: flex; justify-content: space-between; align-items: center; font-size: 16px; color: var(--muted); }
@@ -312,6 +326,10 @@
     <!-- 首頁 -->
     <section data-view="home">
       <h1><span class="thai-h">สวัสดี </span><span class="rom sm" data-roman="sa.wat2ḍii"></span></h1>
+      <div class="tiles mobile-only" style="margin-bottom:12px">
+        <a class="tile" href="#add"><span class="ic">✏️</span><b>新增單字</b><small>上完課快速加字</small></a>
+        <a class="tile" href="#progress"><span class="ic">📊</span><b>進度管理</b><small>匯出／匯入／重設</small></a>
+      </div>
       <div class="stats">
         <div class="stat"><div class="num" id="st-due">—</div><div class="lbl">今日待複習</div></div>
         <div class="stat"><div class="num" id="st-acc">—</div><div class="lbl">近 7 天近音字正確率</div></div>
@@ -325,11 +343,6 @@
       <h2>五個聲調</h2>
       <div class="legend" id="legend"></div>
 
-      <h2>更多</h2>
-      <div class="tiles mobile-only">
-        <a class="tile" href="#add"><span class="ic">✏️</span><b>新增單字</b><small>即時拼音預覽</small></a>
-        <a class="tile" href="#progress"><span class="ic">📊</span><b>進度管理</b><small>匯出／匯入／重設</small></a>
-      </div>
     </section>
 
     <!-- F1 近音字辨識 -->
@@ -901,7 +914,21 @@ function renderNav() {
   document.getElementById('nav').innerHTML =
     '<div class="nav-title">泰語聲調通<small>Pasathai Coach</small></div>' +
     NAV.map(n => `<a href="#${n.id}" data-nav="${n.id}"${n.desk ? ' class="desk-only"' : ''}>` +
-                 `<span class="ic" aria-hidden="true">${n.ic}</span><span>${n.label}</span></a>`).join('');
+                 `<span class="ic" aria-hidden="true">${n.ic}</span><span>${n.label}</span></a>`).join('') +
+    '<button type="button" class="more-btn" id="more-btn" aria-haspopup="true" aria-expanded="false" aria-controls="more-sheet">' +
+    '<span class="ic" aria-hidden="true">⋯</span><span>更多</span></button>';
+  const sheet = document.createElement('div');
+  sheet.id = 'more-sheet'; sheet.className = 'more-sheet'; sheet.hidden = true;
+  sheet.innerHTML = NAV.filter(n => n.desk).map(n =>
+    `<a href="#${n.id}" data-more="${n.id}"><span class="ic" aria-hidden="true">${n.ic}</span><span>${n.label}</span></a>`).join('');
+  document.getElementById('nav').after(sheet);
+  const btn = document.getElementById('more-btn');
+  const setOpen = open => { sheet.hidden = !open; btn.setAttribute('aria-expanded', String(open)); };
+  btn.onclick = e => { e.stopPropagation(); setOpen(sheet.hidden); };
+  sheet.addEventListener('click', e => { if (e.target.closest('a')) setOpen(false); });
+  document.addEventListener('click', e => { if (!sheet.hidden && !sheet.contains(e.target)) setOpen(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
+  window.closeMore = () => setOpen(false);
 }
 
 function route() {
@@ -912,6 +939,13 @@ function route() {
     if (a.dataset.nav === view) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
+  const inMore = NAV.some(n => n.desk && n.id === view);
+  const mb = document.getElementById('more-btn');
+  if (inMore) mb.setAttribute('aria-current', 'page'); else mb.removeAttribute('aria-current');
+  document.querySelectorAll('[data-more]').forEach(a => {
+    if (a.dataset.more === view) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  });
+  window.closeMore();
   if (view !== 'near') Speech.stop();
   if (view !== 'speak') leaveSpeak();
   if (view !== 'add') stopFormRec(true);
