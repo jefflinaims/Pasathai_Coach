@@ -65,7 +65,7 @@
 
   main {
     padding: 16px 16px calc(var(--nav-h) + 24px + env(safe-area-inset-bottom));
-    max-width: 760px; margin: 0 auto;
+    max-width: 760px; width: 100%; margin: 0 auto;
   }
 
   /* 手機：底部分頁列 */
@@ -218,6 +218,31 @@
   table.ex td, table.ex th { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: left; }
   table.ex code { font-size: 17px; }
   table.ex button { border: 0; background: none; padding: 0; text-align: left; min-height: 44px; }
+
+  /* ---------- F2 單字卡 / F3 跟讀 ---------- */
+  .seg { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  .seg-b {
+    flex: 1 1 120px; min-height: 48px; padding: 0 12px; border: 2px solid var(--line); border-radius: 12px;
+    background: var(--card); font-size: 16px; font-weight: 600; color: var(--muted);
+  }
+  .seg-b[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+  .boxes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 8px 0; }
+  .boxc { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px 2px; text-align: center; line-height: 1.25; }
+  .boxc b { display: block; font-size: 22px; color: var(--accent); }
+  .boxc span { font-size: 13px; color: var(--muted); }
+  .fc { text-align: center; padding: 22px 14px; min-height: 220px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; }
+  .fc-tag { font-size: 14px; color: var(--muted); }
+  .fc-big { font-size: 40px; font-weight: 700; line-height: 1.25; }
+  .fc .rom { font-size: 34px; }
+  .fc-hint { font-size: 16px; color: var(--muted); }
+  .fc-mn { background: var(--warn-soft); border-radius: 10px; padding: 6px 12px; font-size: 16px; }
+  .fc .row { width: 100%; justify-content: center; }
+  .btn.bad { border-color: var(--bad); color: var(--bad); }
+  .btn.good { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .grade .btn { min-height: 64px; font-size: 20px; }
+  .countdown { text-align: center; }
+  .countdown .num { font-size: 40px; font-weight: 800; color: var(--accent); line-height: 1; }
+  .countdown .bar > i { transition: none; }
 </style>
 </head>
 <body>
@@ -240,9 +265,9 @@
         <div class="stat"><div class="num" id="st-acc">—</div><div class="lbl">近 7 天近音字正確率</div></div>
         <div class="stat"><div class="num" id="st-streak">0</div><div class="lbl">連續學習天數</div></div>
       </div>
-      <p class="muted" style="font-size:14px">「今日待複習」會在 v2 單字卡完成後開始計算。</p>
-      <div style="margin:16px 0">
-        <a class="btn primary block" href="#near" style="text-decoration:none">👂 開始近音字測驗（10 題）</a>
+      <div class="row" style="margin:16px 0">
+        <a class="btn primary" href="#near" style="text-decoration:none">👂 近音字測驗（10 題）</a>
+        <a class="btn primary" href="#cards" style="text-decoration:none">🃏 今日單字卡複習</a>
       </div>
 
       <h2>五個聲調</h2>
@@ -286,21 +311,47 @@
       <div id="near-result" hidden></div>
     </section>
 
-    <!-- F2 單字卡（v2） -->
+    <!-- F2 單字卡 -->
     <section data-view="cards" hidden>
       <h1>單字卡</h1>
-      <div class="card">
-        <p><span class="badge">v2 製作中</span></p>
-        <p>5 盒式間隔複習（0／1／3／7／14 天）。可切換「看中文想泰語」與「看拼音想中文」，翻面自動播放發音。</p>
+      <div class="boxes" id="c-boxes" aria-label="各盒張數"></div>
+      <div class="seg" role="group" aria-label="卡片正面">
+        <button class="seg-b" data-mode="zh">看中文想泰語</button>
+        <button class="seg-b" data-mode="rom">看拼音想中文</button>
       </div>
+      <div id="c-session">
+        <div class="progress"><span id="c-count"></span><span id="c-box"></span></div>
+        <div class="bar"><i id="c-bar"></i></div>
+        <div class="card fc" id="c-card" aria-live="polite"></div>
+        <button class="btn primary block" id="c-flip">翻面看答案</button>
+        <div class="row grade" id="c-grade" hidden>
+          <button class="btn bad" id="c-forget">✗ 忘了</button>
+          <button class="btn good" id="c-know">✓ 記得</button>
+        </div>
+      </div>
+      <div id="c-done" hidden></div>
     </section>
 
-    <!-- F3 口說跟讀（v2） -->
+    <!-- F3 口說跟讀 -->
     <section data-view="speak" hidden>
       <h1>口說跟讀</h1>
-      <div class="card">
-        <p><span class="badge">v2 製作中</span></p>
-        <p>正常速／慢速播放後留 3 秒跟念；支援的瀏覽器可用「我念念看」比對發音。</p>
+      <div class="seg" id="s-filter" role="group" aria-label="卡片範圍"></div>
+      <div class="progress"><span id="s-count"></span><span id="s-tag"></span></div>
+      <div class="card fc" id="s-card"></div>
+      <div class="row">
+        <button class="btn primary" id="s-normal">▶ 正常速</button>
+        <button class="btn" id="s-slow">🐢 慢速 0.6×</button>
+      </div>
+      <div class="card countdown" id="s-cd" hidden>
+        <div class="num" id="s-cd-num"></div>
+        <p id="s-cd-msg" style="margin:6px 0"></p>
+        <div class="bar"><i id="s-cd-bar"></i></div>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="btn" id="s-mic" hidden>🎤 我念念看</button></div>
+      <div id="s-result" aria-live="polite"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="s-prev">← 上一張</button>
+        <button class="btn" id="s-next">下一張 →</button>
       </div>
     </section>
 
@@ -492,7 +543,7 @@ function romanHTML(code) {
  * ========================================================= */
 const STORE_KEY = 'pasathai-coach';
 const store = (() => {
-  const base = { version: 1, settings: { showThai: true }, stats: {}, daily: {} };
+  const base = { version: 1, settings: { showThai: true, cardMode: 'zh' }, stats: {}, daily: {}, srs: {} };
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY));
     if (saved && typeof saved === 'object') {
@@ -672,8 +723,11 @@ function route() {
     if (a.dataset.nav === view) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
-  if (view !== 'near') { Speech.stop(); }
+  if (view !== 'near') Speech.stop();
+  if (view !== 'speak') leaveSpeak();
   if (view === 'home') renderHome();
+  if (view === 'cards') renderCards();
+  if (view === 'speak') renderSpeak();
   window.scrollTo(0, 0);
 }
 
@@ -706,6 +760,7 @@ function renderHome() {
     const d = store.daily[daysAgo(i)];
     if (d) { right += d.right; total += d.total; }
   }
+  document.getElementById('st-due').textContent = dueCards().length;
   document.getElementById('st-acc').textContent = total ? Math.round(right / total * 100) + '%' : '—';
 
   let streak = 0;
@@ -906,6 +961,279 @@ function resetNear() {
 }
 
 /* =========================================================
+ * F2 單字卡（5 盒 Leitner：0／1／3／7／14 天）
+ * 進度存在 store.srs[id] = {box, due}；沒有紀錄的卡視為第 1 盒、今天到期
+ * ========================================================= */
+const SRS_DAYS = [0, 1, 3, 7, 14];
+const SESSION_SIZE = 20;
+const cardsState = { day: '', queue: [], total: 0, flipped: false };
+
+function addDays(key, n) {
+  const [y, m, d] = key.split('-').map(Number);
+  return dateKey(new Date(y, m - 1, d + n));
+}
+function srsOf(card) {
+  const r = store.srs[card.id];
+  return r ? { box: Math.min(5, Math.max(1, r.box | 0)), due: r.due } : { box: 1, due: dateKey() };
+}
+const dueCards = () => ALL_CARDS.filter(c => srsOf(c).due <= dateKey());
+
+function tagOf(c) {
+  if (c.category === 'near') return `近音字・${c.group}`;
+  if (c.category === 'factory') return `工廠用語・${c.scene}`;
+  return '課堂單字';
+}
+
+function gradeCard(card, remembered) {
+  const box = remembered ? Math.min(5, srsOf(card).box + 1) : 1;
+  store.srs[card.id] = { box, due: addDays(dateKey(), SRS_DAYS[box - 1]) };
+  const st = store.stats[card.id] || (store.stats[card.id] = { right: 0, wrong: 0 });
+  remembered ? st.right++ : st.wrong++;
+  // 只標記「今天有學習」（連續天數用），不計入近音字正確率
+  const day = store.daily[dateKey()] || (store.daily[dateKey()] = { right: 0, total: 0 });
+  day.cards = (day.cards || 0) + 1;
+  save();
+}
+
+function newSession() {
+  const due = shuffle(dueCards()).sort((a, b) => srsOf(a).box - srsOf(b).box).slice(0, SESSION_SIZE);
+  Object.assign(cardsState, { day: dateKey(), queue: due, total: due.length, flipped: false });
+}
+
+/** 卡片內容；back=false 為正面（依模式），true 為背面（完整資訊） */
+function cardFaceHTML(c, back, mode) {
+  const tag = `<div class="fc-tag">${esc(tagOf(c))}${c.verified ? '' : ' <span class="badge">待校對</span>'}</div>`;
+  if (!back) {
+    return mode === 'zh'
+      ? `${tag}<div class="fc-big">${esc(c.meaning)}</div><div class="fc-hint">想想看：泰語怎麼說？</div>`
+      : `${tag}<div class="rom">${romanHTML(c.roman)}</div><div class="thai" lang="th">${esc(c.thai)}</div>` +
+        `<div class="fc-hint">想想看：中文是什麼意思？</div>`;
+  }
+  return `${tag}<div class="rom">${romanHTML(c.roman)}</div><div class="thai" lang="th">${esc(c.thai)}</div>` +
+    `<div class="fc-big" style="font-size:30px">${esc(c.meaning)}</div>` +
+    (c.mnemonic ? `<div class="fc-mn">💡 ${esc(c.mnemonic)}</div>` : '') +
+    `<div class="row"><button class="btn" data-act="play">🔊 再聽</button>` +
+    `<button class="btn" data-act="slow">🐢 慢速</button></div>`;
+}
+
+function renderCards() {
+  Speech.stop();
+  if (cardsState.day !== dateKey()) newSession();
+  const mode = store.settings.cardMode === 'rom' ? 'rom' : 'zh';
+  document.querySelectorAll('[data-view="cards"] [data-mode]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+
+  const counts = [0, 0, 0, 0, 0];
+  ALL_CARDS.forEach(c => counts[srsOf(c).box - 1]++);
+  $('c-boxes').innerHTML = counts.map((n, i) =>
+    `<div class="boxc"><span>盒${i + 1}</span><b>${n}</b><span>${SRS_DAYS[i]}天</span></div>`).join('');
+
+  const q = cardsState.queue;
+  $('c-session').hidden = !q.length;
+  $('c-done').hidden = !!q.length;
+  if (!q.length) { renderCardsDone(); return; }
+
+  const c = q[0];
+  $('c-count').textContent = `剩 ${q.length} 張・本輪共 ${cardsState.total} 張`;
+  $('c-box').textContent = `這張在第 ${srsOf(c).box} 盒`;
+  $('c-bar').style.width = ((cardsState.total - q.length) / cardsState.total * 100) + '%';
+  $('c-card').innerHTML = cardFaceHTML(c, cardsState.flipped, mode);
+  $('c-flip').hidden = cardsState.flipped;
+  $('c-grade').hidden = !cardsState.flipped;
+}
+
+function renderCardsDone() {
+  const left = dueCards().length;
+  let html;
+  if (left) {
+    html = `<div class="card"><div class="score-big" style="font-size:48px">🎉</div>` +
+      `<p style="text-align:center">本輪完成！今天還有 ${left} 張待複習。</p>` +
+      `<button class="btn primary block" id="c-again">▶ 再練一輪</button></div>`;
+  } else {
+    const dues = ALL_CARDS.map(c => srsOf(c).due).sort();
+    const nextDay = dues[0];
+    const n = dues.filter(d => d === nextDay).length;
+    html = `<div class="card"><div class="score-big" style="font-size:48px">🎉</div>` +
+      `<p style="text-align:center">今天的卡片都複習完了！</p>` +
+      `<p class="muted" style="text-align:center">下一批：${nextDay}（${n} 張）</p></div>`;
+  }
+  $('c-done').innerHTML = html + `<a class="btn block" href="#home" style="text-decoration:none">回首頁</a>`;
+  if (left) $('c-again').onclick = () => { newSession(); renderCards(); };
+}
+
+function flipCard() {
+  const c = cardsState.queue[0];
+  if (!c || cardsState.flipped) return;
+  cardsState.flipped = true;
+  renderCards();
+  Speech.play([{ text: c.thai }]);           // 翻面自動播放發音
+}
+
+function answerCard(remembered) {
+  const c = cardsState.queue[0];
+  if (!c || !cardsState.flipped) return;
+  cardsState.queue.shift();
+  gradeCard(c, remembered);
+  if (!remembered) cardsState.queue.push(c);  // 忘了：回第 1 盒，本輪稍後再出現
+  cardsState.flipped = false;
+  renderCards();
+}
+
+/* =========================================================
+ * F3 口說跟讀
+ * ========================================================= */
+const FOLLOW_MS = 3000;
+const SPEAK_FILTERS = [['all', '全部'], ['near', '近音字'], ['class', '課堂'], ['factory', '工廠']];
+const speakState = { cat: 'all', i: 0, timers: [], rec: null };
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+const speakList = () => speakState.cat === 'all' ? ALL_CARDS : ALL_CARDS.filter(c => c.category === speakState.cat);
+
+function renderSpeak() {
+  Speech.stop();
+  cancelCountdown();
+  stopRec();
+  const list = speakList();
+  speakState.i = Math.min(Math.max(0, speakState.i), list.length - 1);
+  const c = list[speakState.i];
+  $('s-filter').innerHTML = SPEAK_FILTERS.map(([k, label]) =>
+    `<button class="seg-b" data-cat="${k}" aria-pressed="${k === speakState.cat}">${label}</button>`).join('');
+  $('s-count').textContent = `第 ${speakState.i + 1} / ${list.length} 張`;
+  $('s-tag').textContent = tagOf(c);
+  $('s-card').innerHTML =
+    `<div class="rom">${romanHTML(c.roman)}</div><div class="thai" lang="th">${esc(c.thai)}</div>` +
+    `<div class="fc-big" style="font-size:26px">${esc(c.meaning)}</div>`;
+  $('s-result').innerHTML = '';
+  $('s-mic').hidden = !SR;                   // 不支援語音辨識就隱藏按鈕，不顯示錯誤
+  $('s-mic').textContent = '🎤 我念念看';
+}
+
+function cancelCountdown() {
+  speakState.timers.forEach(clearTimeout);
+  speakState.timers = [];
+  $('s-cd').hidden = true;
+}
+
+/** 播放結束後留 3 秒讓使用者跟念 */
+function startCountdown() {
+  cancelCountdown();
+  const bar = $('s-cd-bar');
+  $('s-cd').hidden = false;
+  $('s-cd-msg').textContent = '輪到你了，跟著念…';
+  bar.style.transition = 'none';
+  bar.style.width = '100%';
+  void bar.offsetWidth;
+  bar.style.transition = `width ${FOLLOW_MS}ms linear`;
+  bar.style.width = '0%';
+  const secs = FOLLOW_MS / 1000;
+  for (let k = 0; k < secs; k++) {
+    speakState.timers.push(setTimeout(() => { $('s-cd-num').textContent = secs - k; }, k * 1000));
+  }
+  speakState.timers.push(setTimeout(() => {
+    $('s-cd-num').textContent = '✓';
+    $('s-cd-msg').textContent = '時間到。可以再聽一次，或換下一張。';
+  }, FOLLOW_MS));
+}
+
+function playSpeak(rate) {
+  cancelCountdown();
+  stopRec();
+  $('s-result').innerHTML = '';
+  Speech.play([{ text: speakList()[speakState.i].thai, onEnd: startCountdown }], rate);
+}
+
+function moveSpeak(d) {
+  const n = speakList().length;
+  speakState.i = (speakState.i + d + n) % n;
+  renderSpeak();
+}
+
+function leaveSpeak() {
+  cancelCountdown();
+  stopRec();
+}
+
+/* ---- 語音辨識（選用） ---- */
+const THAI_DIGITS = ['ศูนย์', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+const normThai = s => String(s).normalize('NFC').toLowerCase()
+  .replace(/\d/g, d => THAI_DIGITS[Number(d)])       // 辨識器可能回傳阿拉伯數字
+  .replace(/[\sๆ.,!?。，！？/]/g, '');             // 去掉空白、標點與 ๆ
+
+function editDistance(a, b) {
+  const prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    let diag = prev[0];
+    prev[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = prev[j];
+      prev[j] = Math.min(prev[j] + 1, prev[j - 1] + 1, diag + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diag = tmp;
+    }
+  }
+  return prev[b.length];
+}
+
+/** 比對辨識結果與目標泰文：短詞要完全包含（聲調符號也要對），長句容許少量差異 */
+function thaiMatches(heard, target) {
+  const h = normThai(heard), t = normThai(target);
+  if (!h || !t) return false;
+  if (h.includes(t)) return true;
+  return t.length >= 8 && 1 - editDistance(h, t) / Math.max(h.length, t.length) >= 0.8;
+}
+
+function stopRec() {
+  const r = speakState.rec;
+  speakState.rec = null;
+  if (r) { r.onresult = r.onerror = r.onend = null; try { r.abort(); } catch (e) { /* 忽略 */ } }
+  const mic = $('s-mic');
+  if (mic) mic.textContent = '🎤 我念念看';
+}
+
+function showSpeakResult(ok, heard, msg) {
+  $('s-result').innerHTML = ok
+    ? `<div class="feedback ok"><div class="head">✓ 相符</div>聽到：<span class="thai" lang="th" style="font-size:20px;color:var(--ink)">${esc(heard)}</span></div>`
+    : `<div class="feedback bad"><div class="head">再試一次</div>` +
+      (msg ? `<p>${esc(msg)}</p>` : '') +
+      (heard ? `聽到：<span class="thai" lang="th" style="font-size:20px;color:var(--ink)">${esc(heard)}</span>` : '') +
+      `<p class="muted" style="font-size:14px;margin-bottom:0">語音辨識結果僅供參考。</p></div>`;
+}
+
+function startRec() {
+  if (!SR) return;
+  if (speakState.rec) { speakState.rec.stop(); return; }   // 再按一次＝停止
+  Speech.stop();
+  cancelCountdown();
+  const target = speakList()[speakState.i].thai;
+  const rec = new SR();
+  rec.lang = 'th-TH';
+  rec.interimResults = false;
+  rec.maxAlternatives = 3;
+  speakState.rec = rec;
+  $('s-mic').textContent = '⏹ 聆聽中…（再按停止）';
+  $('s-result').innerHTML = '';
+  let got = false;
+  rec.onresult = e => {
+    got = true;
+    const alts = Array.from(e.results[0] || []).map(a => a.transcript);
+    const hit = alts.find(a => thaiMatches(a, target));
+    showSpeakResult(!!hit, hit || alts[0] || '');
+  };
+  rec.onerror = e => {
+    got = true;
+    const msg = { 'no-speech': '沒有聽到聲音。', 'not-allowed': '需要允許麥克風權限才能使用。',
+                  'service-not-allowed': '需要允許麥克風權限才能使用。',
+                  'audio-capture': '找不到麥克風。', 'language-not-supported': '這個瀏覽器的語音辨識不支援泰語。' }[e.error];
+    if (e.error !== 'aborted') showSpeakResult(false, '', msg || '辨識沒有成功。');
+  };
+  rec.onend = () => {
+    if (speakState.rec === rec) speakState.rec = null;
+    $('s-mic').textContent = '🎤 我念念看';
+    if (!got) showSpeakResult(false, '', '沒有聽到聲音。');
+  };
+  try { rec.start(); } catch (e) { stopRec(); showSpeakResult(false, '', '無法啟動語音辨識。'); }
+}
+
+/* =========================================================
  * 拼音轉換預覽（F5 的一部分）
  * ========================================================= */
 const SPECIAL_KEYS = ['ɔ', 'ə', 'ɯ', 'ε', 'ḍ', 'ḅ'];
@@ -973,6 +1301,26 @@ $('near-result').addEventListener('click', e => {
   const g = e.target.closest('[data-drill]')?.dataset.drill;
   if (g) startRound(g);
 });
+document.querySelector('[data-view="cards"]').addEventListener('click', e => {
+  const m = e.target.closest('[data-mode]')?.dataset.mode;
+  if (m) { store.settings.cardMode = m; save(); renderCards(); return; }
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  const c = cardsState.queue[0];
+  if (act && c) Speech.play([{ text: c.thai }], act === 'slow' ? SLOW_RATE : 1);
+});
+$('c-flip').onclick = flipCard;
+$('c-know').onclick = () => answerCard(true);
+$('c-forget').onclick = () => answerCard(false);
+
+$('s-filter').addEventListener('click', e => {
+  const k = e.target.closest('[data-cat]')?.dataset.cat;
+  if (k) { speakState.cat = k; speakState.i = 0; renderSpeak(); }
+});
+$('s-normal').onclick = () => playSpeak(1);
+$('s-slow').onclick = () => playSpeak(SLOW_RATE);
+$('s-mic').onclick = startRec;
+$('s-prev').onclick = () => moveSpeak(-1);
+$('s-next').onclick = () => moveSpeak(1);
 window.addEventListener('hashchange', () => { if (location.hash === '#near') resetNear(); route(); });
 route();
 </script>
