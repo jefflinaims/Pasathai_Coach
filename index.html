@@ -243,6 +243,55 @@
   .countdown { text-align: center; }
   .countdown .num { font-size: 40px; font-weight: 800; color: var(--accent); line-height: 1; }
   .countdown .bar > i { transition: none; }
+
+  /* ---------- F3 聆聽／錄音狀態 ---------- */
+  .status {
+    display: flex; align-items: center; gap: 12px; margin: 12px 0; padding: 14px 16px;
+    border-radius: var(--radius); font-size: 20px; font-weight: 700;
+  }
+  .status.listening { background: var(--accent-soft); border: 3px solid var(--accent); color: var(--accent); }
+  .status.recording { background: var(--bad-soft); border: 3px solid var(--bad); color: var(--bad); }
+  .status .dot { width: 16px; height: 16px; border-radius: 50%; background: currentColor; flex: none; animation: pulse 1s infinite; }
+  .status .live { flex: 1; min-width: 0; font-size: 16px; font-weight: 400; color: var(--ink); word-break: break-word; }
+  .status .time { font-variant-numeric: tabular-nums; }
+  @keyframes pulse { 50% { opacity: .25; } }
+  @media (prefers-reduced-motion: reduce) { .status .dot { animation: none; } }
+  .btn.rec-on { background: var(--bad); border-color: var(--bad); color: #fff; }
+  .btn.listen-on { background: var(--accent); color: #fff; }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; }
+  .hint { font-size: 14px; color: var(--muted); margin: 6px 0 0; }
+
+  /* ---------- F4 工廠實用句 ---------- */
+  .fx { padding: 0; overflow: hidden; }
+  .fx.playing { box-shadow: 0 0 0 4px rgba(0,105,92,.25); }
+  .fx-main {
+    width: 100%; min-height: 72px; display: flex; gap: 14px; align-items: center; text-align: left;
+    padding: 14px 16px; border: 0; background: none;
+  }
+  .fx-play { flex: none; width: 52px; height: 52px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 22px; display: flex; align-items: center; justify-content: center; }
+  .fx-zh { font-size: 21px; font-weight: 700; line-height: 1.35; }
+  .fx-acts { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 16px 14px; }
+  .fx-acts .btn { min-height: 48px; font-size: 16px; padding: 0 14px; flex: 1 1 130px; }
+  .fx-detail { padding: 0 16px 16px; border-top: 1px dashed var(--line); }
+  .words { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 12px 0; }
+  .words .w { font-size: 28px; font-weight: 600; line-height: 1.3; }
+  .words .sep { color: var(--muted); font-size: 24px; align-self: center; }
+
+  /* ---------- F5 新增單字 / F6 進度 ---------- */
+  .form label { display: block; font-weight: 700; margin: 14px 0 4px; }
+  .form label small { font-weight: 400; color: var(--muted); }
+  select.field, textarea.field { font-size: 20px; }
+  .item { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .item .info { flex: 1 1 200px; min-width: 0; }
+  .item .acts { display: flex; gap: 8px; }
+  .item .acts .btn { min-height: 48px; padding: 0 14px; font-size: 16px; }
+  .badge.noaudio { background: #ECEFF1; color: #37474F; }
+  .btn.danger { border-color: var(--bad); color: var(--bad); }
+  .btn.danger.armed { background: var(--bad); color: #fff; }
+  .msg { padding: 10px 14px; border-radius: 10px; margin: 10px 0; font-size: 16px; }
+  .msg.ok { background: var(--ok-soft); border: 1px solid var(--ok); }
+  .msg.err { background: var(--bad-soft); border: 1px solid var(--bad); }
+  .kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
 </style>
 </head>
 <body>
@@ -256,6 +305,7 @@
 
   <main id="main">
     <div class="notice" id="voice-notice" hidden></div>
+    <div class="notice" id="data-notice" hidden></div>
 
     <!-- 首頁 -->
     <section data-view="home">
@@ -275,8 +325,8 @@
 
       <h2>更多</h2>
       <div class="tiles mobile-only">
-        <a class="tile" href="#add"><span class="ic">✏️</span><b>新增單字</b><small>拼音轉換預覽</small></a>
-        <a class="tile" href="#progress"><span class="ic">📊</span><b>進度管理</b><small>匯出／匯入（v3）</small></a>
+        <a class="tile" href="#add"><span class="ic">✏️</span><b>新增單字</b><small>即時拼音預覽</small></a>
+        <a class="tile" href="#progress"><span class="ic">📊</span><b>進度管理</b><small>匯出／匯入／重設</small></a>
       </div>
     </section>
 
@@ -347,7 +397,24 @@
         <p id="s-cd-msg" style="margin:6px 0"></p>
         <div class="bar"><i id="s-cd-bar"></i></div>
       </div>
-      <div class="row" style="margin-top:10px"><button class="btn" id="s-mic" hidden>🎤 我念念看</button></div>
+
+      <h2>錄音對比 <span class="badge">練聲調用這個</span></h2>
+      <div class="row">
+        <button class="btn" id="s-rec" hidden>🎙️ 錄音對比（按一下開始）</button>
+      </div>
+      <p class="hint" id="s-rec-hint">按一下開始錄音，再按一下停止。停止後會自動播放「標準發音 → 我的錄音」。錄音只存在這個頁面的記憶體裡，不上傳、不儲存。</p>
+      <div id="s-mine" hidden>
+        <div class="row" style="margin-top:8px">
+          <button class="btn primary" id="s-cmp">🔁 標準 → 我的錄音</button>
+          <button class="btn" id="s-cmp-mine">▶ 只聽我的錄音</button>
+        </div>
+      </div>
+
+      <div id="s-sr" hidden>
+        <h2>語音辨識（選用）</h2>
+        <div class="row"><button class="btn" id="s-mic">🎤 我念念看（按一下開始）</button></div>
+      </div>
+      <div class="status" id="s-status" role="status" aria-live="polite" hidden></div>
       <div id="s-result" aria-live="polite"></div>
       <div class="row" style="margin-top:12px">
         <button class="btn" id="s-prev">← 上一張</button>
@@ -355,24 +422,62 @@
       </div>
     </section>
 
-    <!-- F4 工廠實用句（v3） -->
+    <!-- F4 工廠實用句 -->
     <section data-view="factory" hidden>
       <h1>工廠實用句</h1>
-      <div class="card">
-        <p><span class="badge">v3 製作中</span></p>
-        <p>依情境（品質／製程／管理）瀏覽 7 句工廠用語，點一下播放，並可加入複習。</p>
-      </div>
+      <div class="seg" id="f-tabs" role="group" aria-label="情境"></div>
+      <p class="muted" style="font-size:15px">點一下句子就播放。<span class="badge">泰文與拼音待老師校對</span></p>
+      <div id="f-list"></div>
     </section>
 
-    <!-- F5 新增單字：v1 先提供拼音轉換預覽 -->
+    <!-- F5 新增單字 -->
     <section data-view="add" hidden>
-      <h1>新增單字</h1>
-      <p class="muted">v1 先提供拼音轉換預覽；表單儲存功能在 v3 加入。</p>
-      <label for="conv-in"><b>輸入碼</b>（聲調寫數字 1–5，長音雙寫母音）</label>
-      <input class="field" id="conv-in" type="text" value="kwaa5"
-             autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
-      <div class="keys" id="conv-keys"></div>
-      <div class="preview" aria-live="polite"><span class="rom" id="conv-out"></span></div>
+      <h1 id="a-title">新增單字</h1>
+      <form class="form card" id="a-form" autocomplete="off" novalidate>
+        <label for="conv-in">輸入碼 <small>（必填。聲調寫數字 1–5，長音雙寫母音，1 可省略）</small></label>
+        <input class="field" id="conv-in" type="text" placeholder="例如 kwaa5"
+               autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <div class="keys" id="conv-keys" aria-label="特殊字母"></div>
+        <div class="preview" aria-live="polite"><span class="rom" id="conv-out"></span></div>
+
+        <label for="a-thai">泰文 <small>（選填；沒填就無法朗讀，會標示「無發音」）</small></label>
+        <input class="field" id="a-thai" type="text" lang="th" placeholder="例如 ขวา"
+               autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+
+        <label for="a-meaning">中文意思 <small>（必填）</small></label>
+        <input class="field" id="a-meaning" type="text" placeholder="例如 右">
+
+        <label for="a-mn">口訣 <small>（選填）</small></label>
+        <input class="field" id="a-mn" type="text">
+
+        <label for="a-cat">分類</label>
+        <select class="field" id="a-cat">
+          <option value="class">課堂單字</option>
+          <option value="near">近音字</option>
+          <option value="factory">工廠用語</option>
+        </select>
+
+        <div id="a-near-box" hidden>
+          <label for="a-group">近音字組 <small>（同組的字會互相當作 F1 測驗選項；輸入新名稱就會建立新組）</small></label>
+          <input class="field" id="a-group" type="text" list="a-group-list" placeholder="例如 G1">
+          <datalist id="a-group-list"></datalist>
+        </div>
+        <div id="a-scene-box" hidden>
+          <label for="a-scene">情境</label>
+          <select class="field" id="a-scene">
+            <option>品質</option><option>製程</option><option>管理</option>
+          </select>
+        </div>
+
+        <div id="a-msg" aria-live="polite"></div>
+        <div class="row" style="margin-top:14px">
+          <button type="submit" class="btn primary" id="a-save">💾 儲存（進入單字卡第 1 盒）</button>
+          <button type="button" class="btn" id="a-cancel" hidden>取消編輯</button>
+        </div>
+      </form>
+
+      <h2>我新增的字 <span class="muted" id="a-count" style="font-size:16px;font-weight:400"></span></h2>
+      <div id="a-list"></div>
 
       <h2>轉換規則</h2>
       <table class="ex">
@@ -383,13 +488,38 @@
       <div class="legend" id="legend2"></div>
     </section>
 
-    <!-- F6 進度管理（v3） -->
+    <!-- F6 進度管理 -->
     <section data-view="progress" hidden>
       <h1>進度管理</h1>
-      <div class="card">
-        <p><span class="badge">v3 製作中</span></p>
-        <p>匯出／匯入 JSON，在手機與電腦之間搬移進度；全部重設需再次確認。</p>
+      <div class="stats">
+        <div class="stat"><div class="num" id="p-due">—</div><div class="lbl">今日待複習</div></div>
+        <div class="stat"><div class="num" id="p-acc">—</div><div class="lbl">近 7 天近音字正確率</div></div>
+        <div class="stat"><div class="num" id="p-streak">0</div><div class="lbl">連續學習天數</div></div>
       </div>
+      <p class="muted" id="p-cards" style="font-size:15px"></p>
+
+      <h2>匯出</h2>
+      <div class="card">
+        <p>下載一個 JSON 檔，內含學習進度與你新增的字。可在另一台裝置匯入。</p>
+        <label style="display:flex;gap:10px;align-items:center;min-height:48px">
+          <input type="checkbox" id="p-with-audio" checked style="width:24px;height:24px"> 包含我新增或匯入的音檔
+        </label>
+        <button class="btn primary block" id="p-export">⬇ 匯出 JSON</button>
+      </div>
+
+      <h2>匯入</h2>
+      <div class="card">
+        <p>選擇之前匯出的 JSON（或含卡片與音檔的資料檔）。選好後會先顯示內容，確認再套用。</p>
+        <input type="file" id="p-file" accept="application/json,.json" style="min-height:48px;max-width:100%">
+        <div id="p-import-info"></div>
+      </div>
+
+      <h2>全部重設</h2>
+      <div class="card">
+        <p>清除這台裝置上的學習進度、複習盒、統計，以及你新增的字與音檔。<b>無法復原</b>，建議先匯出。</p>
+        <button class="btn danger block" id="p-reset">🗑 全部重設</button>
+      </div>
+      <div id="p-msg" aria-live="polite"></div>
     </section>
   </main>
 </div>
@@ -478,9 +608,23 @@ const FACTORY = [
     roman: 'kɔɔng5 sia5 dɔng3 yεεk3 gep2 wai4 nai lang sii5 ḍεεng' },
 ].map(c => ({ category: 'factory', group: '', mnemonic: '', verified: false, ...c }));
 
-const ALL_CARDS = [...CARDS, ...CLASS_WORDS, ...FACTORY];
+const BUILTIN_CARDS = [...CARDS, ...CLASS_WORDS, ...FACTORY];
+let userCards = [];       // 使用者新增或匯入的卡片（存 IndexedDB）
+let privateCards = [];    // private-data.json 的卡片（只放記憶體，不寫入瀏覽器儲存）
+let ALL_CARDS = BUILTIN_CARDS;
+function rebuildCards() {
+  ALL_CARDS = [...BUILTIN_CARDS, ...privateCards, ...userCards];
+}
 
-const byGroup = g => CARDS.filter(c => c.group === g);
+// 只有有泰文（可發音）的近音字才能出題
+const byGroup = g => ALL_CARDS.filter(c => c.category === 'near' && c.group === g && c.thai);
+/** 至少 2 個可發音的字才成一組；內建 G1–G8 在前 */
+function activeGroups() {
+  const ids = [...new Set(ALL_CARDS.filter(c => c.category === 'near' && c.group).map(c => c.group))];
+  const builtin = Object.keys(NEAR_GROUPS);
+  return [...builtin, ...ids.filter(g => !builtin.includes(g)).sort()].filter(g => byGroup(g).length >= 2);
+}
+const groupLabel = g => NEAR_GROUPS[g] ? `${g}・${NEAR_GROUPS[g]}` : g;
 
 /* =========================================================
  * 拼音轉換（SPEC 第 4 節）
@@ -577,7 +721,17 @@ function recordAnswer(card, right) {
  * window.PASATHAI_AUDIO（以泰文為鍵）。
  * ========================================================= */
 const builtinAudio = () => window.PASATHAI_AUDIO || {};
-const hasBuiltinAudio = text => Object.prototype.hasOwnProperty.call(builtinAudio(), text);
+const userAudio = {};      // 泰文 → base64（使用者新增／匯入，存 IndexedDB）
+const privateAudio = {};   // 泰文 → base64（private-data.json，只放記憶體）
+const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+/** 查音檔：使用者 → 私人 → 內建。回傳 data URL 或 null */
+function audioSrc(text) {
+  const v = has(userAudio, text) ? userAudio[text]
+    : has(privateAudio, text) ? privateAudio[text]
+    : has(builtinAudio(), text) ? builtinAudio()[text] : null;
+  if (!v) return null;
+  return v.startsWith('data:') ? v : 'data:audio/mpeg;base64,' + v;
+}
 
 const Speech = {
   supported: 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window,
@@ -609,7 +763,7 @@ const Speech = {
     return this.audio;
   },
 
-  playAudio(text, rate, myToken) {
+  playAudio(text, rate, myToken, src = audioSrc(text), maxMs = 30000) {
     return new Promise(resolve => {
       if (myToken !== this.token) return resolve();
       const a = this.audioEl();
@@ -629,12 +783,12 @@ const Speech = {
         a.playbackRate = rate;   // 部分瀏覽器載入後會重設速度
         if (isFinite(a.duration)) timers.push(setTimeout(finish, a.duration / rate * 1000 + 1500));
       };
-      a.src = 'data:audio/mpeg;base64,' + builtinAudio()[text];
+      a.src = src;
       // 變速時保持音高不變
       a.preservesPitch = a.mozPreservesPitch = a.webkitPreservesPitch = true;
       a.defaultPlaybackRate = rate;
       a.playbackRate = rate;
-      timers.push(setTimeout(finish, 30000));
+      timers.push(setTimeout(finish, maxMs));
       const p = a.play();
       if (p && p.catch) p.catch(finish);
     });
@@ -660,7 +814,8 @@ const Speech = {
   },
 
   speakOne(text, rate, myToken) {
-    return hasBuiltinAudio(text) ? this.playAudio(text, rate, myToken) : this.speakTTS(text, rate, myToken);
+    if (!text) return Promise.resolve();           // 沒有泰文：無發音
+    return audioSrc(text) ? this.playAudio(text, rate, myToken) : this.speakTTS(text, rate, myToken);
   },
 
   /** 依序播放；新的播放會中斷前一個。items: [{text, onStart, onEnd}] */
@@ -670,10 +825,23 @@ const Speech = {
     for (let i = 0; i < items.length; i++) {
       if (myToken !== this.token) return;
       items[i].onStart?.();
-      await this.speakOne(items[i].text, rate, myToken);
+      // url：播放一段現成的音訊（例如使用者的錄音）
+      await (items[i].url ? this.playAudio(null, rate, myToken, items[i].url, 75000)
+                          : this.speakOne(items[i].text, rate, myToken));
       if (i < items.length - 1) await new Promise(r => setTimeout(r, 600));
     }
     if (myToken === this.token) items.at(-1)?.onEnd?.();
+  },
+
+  /** 在使用者點擊時呼叫一次，讓 iOS 之後可以在非點擊的時機播放（例如錄音停止後自動播放） */
+  unlock() {
+    try {
+      const a = this.audioEl();
+      if (!a.paused) return;
+      a.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+      const p = a.play();
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) { /* 忽略 */ }
   },
 
   stop() {
@@ -726,6 +894,9 @@ function route() {
   if (view !== 'near') Speech.stop();
   if (view !== 'speak') leaveSpeak();
   if (view === 'home') renderHome();
+  if (view === 'factory') renderFactory();
+  if (view === 'add') renderAddView();
+  if (view === 'progress') renderProgress();
   if (view === 'cards') renderCards();
   if (view === 'speak') renderSpeak();
   window.scrollTo(0, 0);
@@ -754,20 +925,24 @@ function fillRoman(root = document) {
 /* =========================================================
  * 首頁
  * ========================================================= */
-function renderHome() {
+function calcStats() {
   let right = 0, total = 0;
   for (let i = 0; i < 7; i++) {
     const d = store.daily[daysAgo(i)];
     if (d) { right += d.right; total += d.total; }
   }
-  document.getElementById('st-due').textContent = dueCards().length;
-  document.getElementById('st-acc').textContent = total ? Math.round(right / total * 100) + '%' : '—';
-
   let streak = 0;
   let i = store.daily[daysAgo(0)] ? 0 : 1;      // 今天還沒練習時，從昨天往回算
   while (store.daily[daysAgo(i)]) { streak++; i++; }
-  document.getElementById('st-streak').textContent = streak;
+  return { due: dueCards().length, acc: total ? Math.round(right / total * 100) + '%' : '—', streak };
 }
+function fillStats(ids) {
+  const st = calcStats();
+  document.getElementById(ids[0]).textContent = st.due;
+  document.getElementById(ids[1]).textContent = st.acc;
+  document.getElementById(ids[2]).textContent = st.streak;
+}
+function renderHome() { fillStats(['st-due', 'st-acc', 'st-streak']); }
 
 /* =========================================================
  * F1 近音字辨識
@@ -785,8 +960,8 @@ function shuffle(a) {
 const pickOne = a => a[Math.floor(Math.random() * a.length)];
 
 function renderGroupList() {
-  $('group-list').innerHTML = Object.entries(NEAR_GROUPS).map(([g, label]) =>
-    `<div class="card group-item"><span class="gid">${g}</span>` +
+  $('group-list').innerHTML = activeGroups().map(g =>
+    `<div class="card group-item"><span class="gid">${esc(g)}</span>` +
     byGroup(g).map(c =>
       `<button class="word-chip" data-play="${c.id}"><span class="rom">${romanHTML(c.roman)}</span>` +
       `<span class="m">${esc(c.meaning)} <span class="thai">${esc(c.thai)}</span></span></button>`).join('') +
@@ -796,7 +971,7 @@ function renderGroupList() {
 function buildQuestions(onlyGroup) {
   // 各組輪流出題，讓 10 題盡量涵蓋 8 組
   let groups = onlyGroup ? [onlyGroup] : [];
-  while (!onlyGroup && groups.length < ROUND_SIZE) groups = groups.concat(shuffle(Object.keys(NEAR_GROUPS)));
+  while (!onlyGroup && groups.length < ROUND_SIZE) groups = groups.concat(shuffle(activeGroups()));
   if (onlyGroup) groups = Array(ROUND_SIZE).fill(onlyGroup);
   groups = groups.slice(0, ROUND_SIZE);
 
@@ -825,7 +1000,7 @@ function showQuestion() {
   $('q-count').textContent = `第 ${quiz.i + 1} / ${quiz.qs.length} 題`;
   $('q-score').textContent = `答對 ${quiz.right}`;
   $('q-bar').style.width = (quiz.i / quiz.qs.length * 100) + '%';
-  $('q-group').textContent = `${q.group}・${NEAR_GROUPS[q.group]}：你聽到的是哪一個？`;
+  $('q-group').textContent = `${groupLabel(q.group)}：你聽到的是哪一個？`;
   $('q-options').innerHTML = q.options.map((c, k) =>
     `<button class="opt" data-k="${k}"><span class="tag"></span>` +
     `<div class="rom">${romanHTML(c.roman)}</div>` +
@@ -930,12 +1105,12 @@ function showResult() {
         const key = w.correct.id + '>' + w.chosen.id;
         (pairs[key] = pairs[key] || { ...w, n: 0 }).n++;
       }
-      return `<div class="card"><p><b>${g}・${NEAR_GROUPS[g]}</b>　錯 ${max} 次</p>` +
+      return `<div class="card"><p><b>${esc(groupLabel(g))}</b>　錯 ${max} 次</p>` +
         Object.values(pairs).map(p =>
           `<p>聽到 <span class="rom sm">${romanHTML(p.correct.roman)}</span> ${esc(p.correct.meaning)}` +
           ` → 選成 <span class="rom sm">${romanHTML(p.chosen.roman)}</span> ${esc(p.chosen.meaning)}` +
           (p.n > 1 ? `　×${p.n}` : '') + '</p>').join('') +
-        `<button class="btn block" data-drill="${g}">🎯 專練 ${g}（10 題）</button></div>`;
+        `<button class="btn block" data-drill="${esc(g)}">🎯 專練 ${g}（10 題）</button></div>`;
     }).join('');
   }
 
@@ -979,10 +1154,13 @@ function srsOf(card) {
 const dueCards = () => ALL_CARDS.filter(c => srsOf(c).due <= dateKey());
 
 function tagOf(c) {
-  if (c.category === 'near') return `近音字・${c.group}`;
-  if (c.category === 'factory') return `工廠用語・${c.scene}`;
-  return '課堂單字';
+  let t = '課堂單字';
+  if (c.category === 'near') t = `近音字・${c.group || '未分組'}`;
+  else if (c.category === 'factory') t = `工廠用語・${c.scene || '未分類'}`;
+  return c.source === 'user' ? t + '・我新增的' : t;
 }
+const NOAUDIO = ' <span class="badge noaudio">無發音</span>';
+const noAudioBadge = c => c.thai ? '' : NOAUDIO;
 
 function gradeCard(card, remembered) {
   const box = remembered ? Math.min(5, srsOf(card).box + 1) : 1;
@@ -1002,18 +1180,19 @@ function newSession() {
 
 /** 卡片內容；back=false 為正面（依模式），true 為背面（完整資訊） */
 function cardFaceHTML(c, back, mode) {
-  const tag = `<div class="fc-tag">${esc(tagOf(c))}${c.verified ? '' : ' <span class="badge">待校對</span>'}</div>`;
+  const tag = `<div class="fc-tag">${esc(tagOf(c))}${c.verified ? '' : ' <span class="badge">待校對</span>'}${noAudioBadge(c)}</div>`;
+  const thai = c.thai ? `<div class="thai" lang="th">${esc(c.thai)}</div>` : '';
   if (!back) {
     return mode === 'zh'
       ? `${tag}<div class="fc-big">${esc(c.meaning)}</div><div class="fc-hint">想想看：泰語怎麼說？</div>`
-      : `${tag}<div class="rom">${romanHTML(c.roman)}</div><div class="thai" lang="th">${esc(c.thai)}</div>` +
+      : `${tag}<div class="rom">${romanHTML(c.roman)}</div>${thai}` +
         `<div class="fc-hint">想想看：中文是什麼意思？</div>`;
   }
-  return `${tag}<div class="rom">${romanHTML(c.roman)}</div><div class="thai" lang="th">${esc(c.thai)}</div>` +
+  return `${tag}<div class="rom">${romanHTML(c.roman)}</div>${thai}` +
     `<div class="fc-big" style="font-size:30px">${esc(c.meaning)}</div>` +
     (c.mnemonic ? `<div class="fc-mn">💡 ${esc(c.mnemonic)}</div>` : '') +
-    `<div class="row"><button class="btn" data-act="play">🔊 再聽</button>` +
-    `<button class="btn" data-act="slow">🐢 慢速</button></div>`;
+    (c.thai ? `<div class="row"><button class="btn" data-act="play">🔊 再聽</button>` +
+              `<button class="btn" data-act="slow">🐢 慢速</button></div>` : '');
 }
 
 function renderCards() {
@@ -1083,29 +1262,92 @@ function answerCard(remembered) {
  * F3 口說跟讀
  * ========================================================= */
 const FOLLOW_MS = 3000;
+const REC_MAX_MS = 60000;      // 錄音上限（只為避免忘了停止而一直佔用記憶體）
 const SPEAK_FILTERS = [['all', '全部'], ['near', '近音字'], ['class', '課堂'], ['factory', '工廠']];
-const speakState = { cat: 'all', i: 0, timers: [], rec: null };
+const speakState = { cat: 'all', i: 0, timers: [], rec: null, mr: null, mine: null, status: null };
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const CAN_RECORD = !!window.MediaRecorder;
+const REC_HINT = '按一下開始錄音，再按一下停止。停止後會自動播放「標準發音 → 我的錄音」。錄音只存在這個頁面的記憶體裡，不上傳、不儲存。';
 
 const speakList = () => speakState.cat === 'all' ? ALL_CARDS : ALL_CARDS.filter(c => c.category === speakState.cat);
+const speakCard = () => { const l = speakList(); return l[Math.min(speakState.i, l.length - 1)]; };
+
+/* ---- 狀態列：聆聽中／錄音中／播放中 ---- */
+function setStatus(kind, label = '') {
+  const el = $('s-status');
+  speakState.status = kind;
+  if (!kind) { el.hidden = true; el.innerHTML = ''; el.className = 'status'; return; }
+  el.hidden = false;
+  el.className = 'status ' + (kind === 'recording' ? 'recording' : 'listening');
+  el.innerHTML = `<span class="dot" aria-hidden="true"></span><span>${esc(label)}</span><span class="live"></span>`;
+}
+function setStatusLive(text) {
+  const live = $('s-status').querySelector('.live');
+  if (live) live.textContent = text;
+}
+function clearPlayStatus() { if (speakState.status === 'playing') setStatus(null); }
+
+/** 依目前狀態更新按鈕文字與停用狀態（聆聽與錄音不能同時進行） */
+function updateSpeakButtons() {
+  const recording = !!speakState.mr, listening = !!speakState.rec;
+  const rec = $('s-rec'), mic = $('s-mic');
+  rec.textContent = recording ? (speakState.mr.state === 'starting' ? '⏳ 等待麥克風…' : '⏹ 停止錄音')
+                              : '🎙️ 錄音對比（按一下開始）';
+  rec.classList.toggle('rec-on', recording);
+  rec.disabled = listening;
+  mic.textContent = listening ? '⏹ 結束聆聽（按一下結束）' : '🎤 我念念看（按一下開始）';
+  mic.classList.toggle('listen-on', listening);
+  mic.disabled = recording || !speakCard().thai;
+}
+
+/* ---- 錯誤說明 ---- */
+const SPEAK_ERRORS = {
+  'no-mic':  ['找不到麥克風', '這台裝置沒有偵測到麥克風。請接上麥克風或耳機麥克風，並確認系統沒有停用它，再試一次。'],
+  'denied':  ['麥克風權限被拒絕', '請點網址列左側的鎖頭（或網站設定），把「麥克風」改成允許，再重新整理頁面。iPhone 請到 設定 → Safari → 麥克風。'],
+  'silence': ['沒偵測到聲音', '請靠近麥克風、大聲一點再試一次，並確認麥克風沒有被靜音。'],
+  'network': ['網路錯誤', '語音辨識需要連上網路（瀏覽器會把聲音送到辨識服務）。請檢查網路後再試；「錄音對比」不需要網路。'],
+  'lang':    ['不支援泰語辨識', '這個瀏覽器的語音辨識不支援泰語。請改用「錄音對比」。'],
+  'insecure': ['無法使用麥克風', '錄音需要安全連線（https 或 localhost）。請從 GitHub Pages 的網址開啟。'],
+  'other':   ['發生錯誤', '這次沒有成功，請再試一次。'],
+};
+function errKey(code) {
+  switch (code) {
+    case 'audio-capture': case 'NotFoundError': case 'DevicesNotFoundError': case 'OverconstrainedError':
+      return 'no-mic';
+    case 'not-allowed': case 'service-not-allowed': case 'NotAllowedError': case 'SecurityError': case 'PermissionDeniedError':
+      return 'denied';
+    case 'no-speech': return 'silence';
+    case 'network': return 'network';
+    case 'language-not-supported': return 'lang';
+    default: return 'other';
+  }
+}
+const SR_NOTE = '<p class="hint">辨識是猜字，不代表聲調正確；練聲調請用錄音對比。</p>';
+function showSpeakError(key, withNote) {
+  const [head, body] = SPEAK_ERRORS[key] || SPEAK_ERRORS.other;
+  $('s-result').innerHTML = `<div class="feedback bad"><div class="head">${esc(head)}</div><p>${esc(body)}</p></div>` +
+    (withNote ? SR_NOTE : '');
+}
 
 function renderSpeak() {
-  Speech.stop();
-  cancelCountdown();
-  stopRec();
+  leaveSpeak();
   const list = speakList();
   speakState.i = Math.min(Math.max(0, speakState.i), list.length - 1);
   const c = list[speakState.i];
   $('s-filter').innerHTML = SPEAK_FILTERS.map(([k, label]) =>
     `<button class="seg-b" data-cat="${k}" aria-pressed="${k === speakState.cat}">${label}</button>`).join('');
   $('s-count').textContent = `第 ${speakState.i + 1} / ${list.length} 張`;
-  $('s-tag').textContent = tagOf(c);
+  $('s-tag').innerHTML = esc(tagOf(c)) + noAudioBadge(c);
   $('s-card').innerHTML =
-    `<div class="rom">${romanHTML(c.roman)}</div><div class="thai" lang="th">${esc(c.thai)}</div>` +
+    `<div class="rom">${romanHTML(c.roman)}</div>` +
+    (c.thai ? `<div class="thai" lang="th">${esc(c.thai)}</div>` : '<div class="fc-hint">這張卡沒有泰文，無法朗讀。</div>') +
     `<div class="fc-big" style="font-size:26px">${esc(c.meaning)}</div>`;
   $('s-result').innerHTML = '';
-  $('s-mic').hidden = !SR;                   // 不支援語音辨識就隱藏按鈕，不顯示錯誤
-  $('s-mic').textContent = '🎤 我念念看';
+  $('s-normal').disabled = $('s-slow').disabled = !c.thai;
+  $('s-sr').hidden = !SR;                    // 不支援語音辨識就隱藏按鈕，不顯示錯誤
+  $('s-rec').hidden = !CAN_RECORD;
+  $('s-rec-hint').textContent = CAN_RECORD ? REC_HINT : '這個瀏覽器不支援錄音，無法使用錄音對比。';
+  updateSpeakButtons();
 }
 
 function cancelCountdown() {
@@ -1136,10 +1378,14 @@ function startCountdown() {
 }
 
 function playSpeak(rate) {
+  const c = speakCard();
+  if (!c.thai) return;
   cancelCountdown();
   stopRec();
+  stopRecorder(true);
+  clearPlayStatus();
   $('s-result').innerHTML = '';
-  Speech.play([{ text: speakList()[speakState.i].thai, onEnd: startCountdown }], rate);
+  Speech.play([{ text: c.thai, onEnd: startCountdown }], rate);
 }
 
 function moveSpeak(d) {
@@ -1148,12 +1394,113 @@ function moveSpeak(d) {
   renderSpeak();
 }
 
+/** 離開這張卡或這個頁面：停止所有播放、聆聽、錄音，並丟掉記憶體中的錄音 */
 function leaveSpeak() {
+  Speech.stop();
   cancelCountdown();
   stopRec();
+  stopRecorder(true);
+  clearMine();
+  setStatus(null);
 }
 
-/* ---- 語音辨識（選用） ---- */
+/* ---- 錄音對比（MediaRecorder；錄音只存在記憶體） ---- */
+function clearMine() {
+  if (speakState.mine) URL.revokeObjectURL(speakState.mine);
+  speakState.mine = null;
+  $('s-mine').hidden = true;
+}
+
+/** 依序播放「標準發音 → 我的錄音」；withStandard=false 時只播我的錄音 */
+function compareMine(withStandard) {
+  const c = speakCard();
+  if (!speakState.mine) return;
+  cancelCountdown();
+  const items = [];
+  if (withStandard && c.thai) items.push({ text: c.thai, onStart: () => setStatus('playing', '🔊 播放：標準發音') });
+  items.push({ url: speakState.mine, onStart: () => setStatus('playing', '🎙️ 播放：我的錄音'), onEnd: () => clearPlayStatus() });
+  Speech.play(items);
+}
+
+/** 結束錄音。discard=true 時丟棄錄音（切換卡片、離開頁面等） */
+function stopRecorder(discard) {
+  const h = speakState.mr;
+  if (!h) return;
+  if (!discard) { if (h.state === 'recording') h.recorder.stop(); return; }
+  speakState.mr = null;
+  h.cancelled = true;
+  clearInterval(h.timer);
+  if (h.recorder) {
+    h.recorder.onstop = h.recorder.ondataavailable = h.recorder.onerror = null;
+    try { if (h.recorder.state !== 'inactive') h.recorder.stop(); } catch (e) { /* 忽略 */ }
+  }
+  if (h.stream) h.stream.getTracks().forEach(t => t.stop());
+  if (speakState.status === 'recording') setStatus(null);
+  updateSpeakButtons();
+}
+
+function finishRecording(h, rec) {
+  clearInterval(h.timer);
+  if (h.stream) h.stream.getTracks().forEach(t => t.stop());
+  if (speakState.mr !== h) return;           // 已被丟棄
+  speakState.mr = null;
+  setStatus(null);
+  updateSpeakButtons();
+  const blob = new Blob(h.chunks, { type: rec.mimeType || 'audio/webm' });
+  if (!blob.size) { showSpeakError('silence', false); return; }
+  clearMine();
+  speakState.mine = URL.createObjectURL(blob);
+  $('s-mine').hidden = false;
+  $('s-result').innerHTML = '';
+  compareMine(true);                          // 停止後自動播放：標準 → 我的錄音
+}
+
+async function toggleRecorder() {
+  if (!CAN_RECORD) return;
+  const cur = speakState.mr;
+  if (cur) { stopRecorder(false); return; }   // 再按一次＝停止（等待麥克風授權時按沒有作用）
+  Speech.stop();
+  Speech.unlock();
+  cancelCountdown();
+  stopRec();
+  clearMine();
+  setStatus(null);
+  $('s-result').innerHTML = '';
+  if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) { showSpeakError('insecure', false); return; }
+
+  const h = speakState.mr = { state: 'starting', stream: null, recorder: null, chunks: [], timer: null, t0: 0, cancelled: false };
+  updateSpeakButtons();
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) {
+    if (speakState.mr === h) { speakState.mr = null; updateSpeakButtons(); showSpeakError(errKey(e && e.name), false); }
+    return;
+  }
+  if (h.cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
+  h.stream = stream;
+  let rec;
+  try { rec = new MediaRecorder(stream); }
+  catch (e) { stream.getTracks().forEach(t => t.stop()); speakState.mr = null; updateSpeakButtons(); showSpeakError('other', false); return; }
+  h.recorder = rec;
+  rec.ondataavailable = ev => { if (ev.data && ev.data.size) h.chunks.push(ev.data); };
+  rec.onstop = () => finishRecording(h, rec);
+  rec.onerror = () => { stopRecorder(true); showSpeakError('other', false); };
+  rec.start();
+  h.state = 'recording';
+  h.t0 = Date.now();
+  setStatus('recording', '● 錄音中');
+  const tick = () => {
+    const ms = Date.now() - h.t0, sec = Math.floor(ms / 1000);
+    setStatusLive(`${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}　再按一次「停止錄音」`);
+    if (ms >= REC_MAX_MS && rec.state === 'recording') rec.stop();
+  };
+  tick();
+  h.timer = setInterval(tick, 250);
+  updateSpeakButtons();
+}
+
+/* ---- 語音辨識（選用）：按一下開始、再按一下結束 ---- */
 const THAI_DIGITS = ['ศูนย์', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
 const normThai = s => String(s).normalize('NFC').toLowerCase()
   .replace(/\d/g, d => THAI_DIGITS[Number(d)])       // 辨識器可能回傳阿拉伯數字
@@ -1181,60 +1528,273 @@ function thaiMatches(heard, target) {
   return t.length >= 8 && 1 - editDistance(h, t) / Math.max(h.length, t.length) >= 0.8;
 }
 
+/** 強制結束聆聽、不顯示結果（切換卡片、開始別的動作時） */
 function stopRec() {
-  const r = speakState.rec;
+  const h = speakState.rec;
   speakState.rec = null;
-  if (r) { r.onresult = r.onerror = r.onend = null; try { r.abort(); } catch (e) { /* 忽略 */ } }
-  const mic = $('s-mic');
-  if (mic) mic.textContent = '🎤 我念念看';
+  if (h && h.sr) { h.sr.onresult = h.sr.onerror = h.sr.onend = null; try { h.sr.abort(); } catch (e) { /* 忽略 */ } }
+  if (speakState.status === 'listening') setStatus(null);
+  updateSpeakButtons();
 }
 
-function showSpeakResult(ok, heard, msg) {
-  $('s-result').innerHTML = ok
-    ? `<div class="feedback ok"><div class="head">✓ 相符</div>聽到：<span class="thai" lang="th" style="font-size:20px;color:var(--ink)">${esc(heard)}</span></div>`
+function showSpeakResult(ok, heard, others) {
+  const th = t => `<span class="thai" lang="th" style="font-size:20px;color:var(--ink)">${esc(t)}</span>`;
+  $('s-result').innerHTML = (ok
+    ? `<div class="feedback ok"><div class="head">✓ 相符</div>聽到：${th(heard)}</div>`
     : `<div class="feedback bad"><div class="head">再試一次</div>` +
-      (msg ? `<p>${esc(msg)}</p>` : '') +
-      (heard ? `聽到：<span class="thai" lang="th" style="font-size:20px;color:var(--ink)">${esc(heard)}</span>` : '') +
-      `<p class="muted" style="font-size:14px;margin-bottom:0">語音辨識結果僅供參考。</p></div>`;
+      (heard ? `聽到：${th(heard)}` : '') +
+      (others.length ? `<p class="muted" style="font-size:14px;margin:6px 0 0">其他候選：${others.map(th).join('、')}</p>` : '') +
+      `</div>`) + SR_NOTE;
 }
 
-function startRec() {
+/** 聆聽結束後判斷結果；任何一個候選結果包含目標泰文就算相符 */
+function judgeSpeech(groups, target) {
+  const all = groups.flat();
+  const joined = groups.map(g => g[0] || '').join('');     // 分段辨識時，把各段的第一候選接起來再比一次
+  const hit = all.concat(joined).find(a => thaiMatches(a, target));
+  return { hit, top: groups.length ? groups[groups.length - 1][0] || '' : '', all };
+}
+
+function launchSR(h) {
+  const sr = new SR();
+  h.sr = sr;
+  h.lastStart = Date.now();
+  sr.lang = 'th-TH';
+  sr.continuous = true;          // 不因停頓自動結束，由使用者按結束
+  sr.interimResults = true;
+  sr.maxAlternatives = 5;
+  sr.onresult = e => {
+    h.groups = Array.from(e.results).map(r => Array.from(r).map(a => a.transcript));
+    setStatusLive(h.groups.map(g => g[0] || '').join(' '));
+  };
+  sr.onerror = e => {
+    if (e.error === 'aborted' || e.error === 'no-speech') return;   // no-speech 交給 onend 處理（會自動重新聆聽）
+    h.fatal = true;
+    speakState.rec = null;
+    setStatus(null);
+    updateSpeakButtons();
+    showSpeakError(errKey(e.error), true);
+  };
+  sr.onend = () => {
+    if (speakState.rec !== h || h.fatal) return;
+    if (!h.groups.length && !h.userStop) {
+      // 瀏覽器自己因沒聲音而結束：只要使用者還沒按結束，就再開始聆聽
+      h.quick = (Date.now() - h.lastStart < 800) ? h.quick + 1 : 0;
+      if (h.quick < 3) { try { launchSR(h); return; } catch (e) { /* 往下結束 */ } }
+    }
+    finishSR(h);
+  };
+  sr.start();
+}
+
+function finishSR(h) {
+  speakState.rec = null;
+  setStatus(null);
+  updateSpeakButtons();
+  if (!h.groups.length) { showSpeakError('silence', true); return; }
+  const r = judgeSpeech(h.groups, h.target);
+  showSpeakResult(!!r.hit, r.hit || r.top, r.hit ? [] : [...new Set(r.all)].filter(a => a !== r.top).slice(0, 4));
+}
+
+function toggleSR() {
   if (!SR) return;
-  if (speakState.rec) { speakState.rec.stop(); return; }   // 再按一次＝停止
+  const cur = speakState.rec;
+  if (cur) {                        // 再按一次＝結束，並顯示結果
+    cur.userStop = true;
+    try { cur.sr.stop(); } catch (e) { finishSR(cur); }
+    return;
+  }
+  const c = speakCard();
+  if (!c.thai) return;
   Speech.stop();
   cancelCountdown();
-  const target = speakList()[speakState.i].thai;
-  const rec = new SR();
-  rec.lang = 'th-TH';
-  rec.interimResults = false;
-  rec.maxAlternatives = 3;
-  speakState.rec = rec;
-  $('s-mic').textContent = '⏹ 聆聽中…（再按停止）';
+  stopRecorder(true);
+  clearPlayStatus();
   $('s-result').innerHTML = '';
-  let got = false;
-  rec.onresult = e => {
-    got = true;
-    const alts = Array.from(e.results[0] || []).map(a => a.transcript);
-    const hit = alts.find(a => thaiMatches(a, target));
-    showSpeakResult(!!hit, hit || alts[0] || '');
-  };
-  rec.onerror = e => {
-    got = true;
-    const msg = { 'no-speech': '沒有聽到聲音。', 'not-allowed': '需要允許麥克風權限才能使用。',
-                  'service-not-allowed': '需要允許麥克風權限才能使用。',
-                  'audio-capture': '找不到麥克風。', 'language-not-supported': '這個瀏覽器的語音辨識不支援泰語。' }[e.error];
-    if (e.error !== 'aborted') showSpeakResult(false, '', msg || '辨識沒有成功。');
-  };
-  rec.onend = () => {
-    if (speakState.rec === rec) speakState.rec = null;
-    $('s-mic').textContent = '🎤 我念念看';
-    if (!got) showSpeakResult(false, '', '沒有聽到聲音。');
-  };
-  try { rec.start(); } catch (e) { stopRec(); showSpeakResult(false, '', '無法啟動語音辨識。'); }
+  const h = speakState.rec = { sr: null, groups: [], userStop: false, fatal: false, quick: 0, lastStart: 0, target: c.thai };
+  setStatus('listening', '🎤 正在聆聽…');
+  setStatusLive('請念出泰語，念完再按「結束聆聽」');
+  updateSpeakButtons();
+  try { launchSR(h); }
+  catch (e) { speakState.rec = null; setStatus(null); updateSpeakButtons(); showSpeakError('other', true); }
 }
 
 /* =========================================================
- * 拼音轉換預覽（F5 的一部分）
+ * F4 工廠實用句
+ * ========================================================= */
+const FACTORY_SCENES = ['品質', '製程', '管理'];
+const factoryState = { scene: '品質', open: new Set() };
+const factoryAll = () => ALL_CARDS.filter(c => c.category === 'factory');
+
+function renderFactory() {
+  const all = factoryAll();
+  const others = all.filter(c => !FACTORY_SCENES.includes(c.scene));
+  const scenes = others.length ? [...FACTORY_SCENES, '其他'] : FACTORY_SCENES;
+  if (!scenes.includes(factoryState.scene)) factoryState.scene = scenes[0];
+  const inScene = c => factoryState.scene === '其他' ? !FACTORY_SCENES.includes(c.scene) : c.scene === factoryState.scene;
+  $('f-tabs').innerHTML = scenes.map(sc =>
+    `<button class="seg-b" data-scene="${sc}" aria-pressed="${sc === factoryState.scene}">${sc}（${all.filter(c =>
+      sc === '其他' ? !FACTORY_SCENES.includes(c.scene) : c.scene === sc).length}）</button>`).join('');
+  const list = all.filter(inScene);
+  $('f-list').innerHTML = list.length ? list.map(c => {
+    const open = factoryState.open.has(c.id);
+    const words = c.roman.split(/\s+/).filter(Boolean).map(w =>
+      w === '/' ? '<span class="sep">／</span>' : `<span class="w">${romanHTML(w)}</span>`).join('');
+    return `<div class="card fx" data-id="${esc(c.id)}">` +
+      `<button class="fx-main" data-fa="play"${c.thai ? '' : ' disabled'} aria-label="播放：${esc(c.meaning)}">` +
+        `<span class="fx-play" aria-hidden="true">${c.thai ? '▶' : '🔇'}</span>` +
+        `<span><span class="fx-zh">${esc(c.meaning)}</span>` +
+        (c.thai ? `<span class="thai" lang="th" style="display:block">${esc(c.thai)}</span>` : '') +
+        `<span>${c.verified ? '' : '<span class="badge">待校對</span>'}${noAudioBadge(c)}</span></span></button>` +
+      `<div class="fx-acts">` +
+        `<button class="btn" data-fa="slow"${c.thai ? '' : ' disabled'}>🐢 慢速</button>` +
+        `<button class="btn" data-fa="open" aria-expanded="${open}">${open ? '▲ 收合' : '▼ 逐字拼音'}</button>` +
+        `<button class="btn" data-fa="drill">🗣️ 跟讀練習</button></div>` +
+      (open ? `<div class="fx-detail"><div class="words">${words}</div>` +
+        `<p><b>中文：</b>${esc(c.meaning)}</p>` +
+        (c.mnemonic ? `<p class="fc-mn">💡 ${esc(c.mnemonic)}</p>` : '') + `</div>` : '') +
+      `</div>`;
+  }).join('') : '<div class="card"><p class="muted">這個情境還沒有句子。</p></div>';
+}
+
+function factoryAction(card, act, el) {
+  if (act === 'play' || act === 'slow') {
+    if (!card.thai) return;
+    document.querySelectorAll('.fx.playing').forEach(x => x.classList.remove('playing'));
+    const box = el.closest('.fx');
+    box.classList.add('playing');
+    Speech.play([{ text: card.thai, onEnd: () => box.classList.remove('playing') }], act === 'slow' ? SLOW_RATE : 1);
+  } else if (act === 'open') {
+    factoryState.open.has(card.id) ? factoryState.open.delete(card.id) : factoryState.open.add(card.id);
+    renderFactory();
+  } else if (act === 'drill') {
+    // 工廠用語已全部在單字卡裡，所以直接跳到 F3 的這一句
+    speakState.cat = 'factory';
+    speakState.i = factoryAll().indexOf(card);
+    location.hash = '#speak';
+  }
+}
+
+/* =========================================================
+ * 資料儲存：IndexedDB（使用者新增或匯入的卡片與音檔）
+ * ========================================================= */
+const IDB = {
+  db: null,
+  open() {
+    return new Promise(resolve => {
+      let done = false;
+      const fin = v => { if (!done) { done = true; resolve(v); } };
+      try {
+        const rq = indexedDB.open('pasathai-coach', 1);
+        rq.onupgradeneeded = () => {
+          rq.result.createObjectStore('cards', { keyPath: 'id' });
+          rq.result.createObjectStore('audio', { keyPath: 'thai' });
+        };
+        rq.onsuccess = () => { this.db = rq.result; fin(true); };
+        rq.onerror = rq.onblocked = () => fin(false);
+        setTimeout(() => fin(false), 3000);
+      } catch (e) { fin(false); }
+    });
+  },
+  /** fn(objectStore) 可回傳一個 request 以取得結果；失敗回傳 null */
+  req(name, mode, fn) {
+    return new Promise(resolve => {
+      if (!this.db) return resolve(null);
+      try {
+        const tx = this.db.transaction(name, mode);
+        const r = fn(tx.objectStore(name));
+        tx.oncomplete = () => resolve(r && 'result' in r ? r.result : true);
+        tx.onerror = tx.onabort = () => resolve(null);
+      } catch (e) { resolve(null); }
+    });
+  },
+  getAll: name => IDB.req(name, 'readonly', s => s.getAll()),
+  putMany: (name, arr) => IDB.req(name, 'readwrite', s => { arr.forEach(v => s.put(v)); }),
+  remove: (name, key) => IDB.req(name, 'readwrite', s => { s.delete(key); }),
+  clear: name => IDB.req(name, 'readwrite', s => { s.clear(); }),
+};
+let persistOK = true;      // IndexedDB 能用嗎（無痕模式等情況可能不行）
+
+function warnNoPersist() {
+  persistOK = false;
+  const el = $('data-notice');
+  el.textContent = '這個瀏覽器無法永久儲存你新增的字（可能是無痕模式或封鎖了網站資料）。關閉頁面後會消失，請先用「進度管理」匯出備份。';
+  el.hidden = false;
+}
+
+const CATEGORIES = ['near', 'class', 'factory'];
+/** 把外來資料（匯入檔、private-data.json、IndexedDB）整理成安全的卡片；不合格回傳 null */
+function sanitizeCard(raw, source) {
+  if (!raw || typeof raw !== 'object') return null;
+  const str = v => typeof v === 'string' ? v.normalize('NFC').trim() : '';
+  const roman = str(raw.roman), meaning = str(raw.meaning);
+  if (!roman || !meaning || !parseRoman(roman).some(t => t.type === 'syl')) return null;
+  const category = CATEGORIES.includes(raw.category) ? raw.category : 'class';
+  let id = str(raw.id);
+  if (!id || id.length > 64) id = newCardId();
+  return {
+    id, thai: str(raw.thai), roman, meaning, mnemonic: str(raw.mnemonic), category,
+    group: category === 'near' ? str(raw.group) : '',
+    scene: category === 'factory' ? str(raw.scene) : '',
+    verified: raw.verified !== false, source,
+  };
+}
+const newCardId = () => 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const isAudioString = v => typeof v === 'string' && v.length > 20 && /^(data:audio\/[\w.+-]+;base64,)?[A-Za-z0-9+/=\s]+$/.test(v.slice(0, 80));
+const builtinIds = () => new Set(BUILTIN_CARDS.map(c => c.id));
+const publicCard = c => { const { source, ...rest } = c; return rest; };
+
+async function loadUserData() {
+  if (!(await IDB.open())) { warnNoPersist(); return; }
+  const [cards, audio] = await Promise.all([IDB.getAll('cards'), IDB.getAll('audio')]);
+  if (cards === null || audio === null) { warnNoPersist(); return; }
+  const taken = builtinIds();
+  userCards = cards.map(c => sanitizeCard(c, 'user')).filter(c => c && !taken.has(c.id));
+  audio.forEach(a => { if (a && typeof a.thai === 'string' && isAudioString(a.data)) userAudio[a.thai] = a.data; });
+  rebuildCards();
+}
+
+/** 預留私人版：同目錄的 private-data.json（{cards:[…], audio:{泰文: base64}}）。讀不到就靜默略過 */
+async function loadPrivate() {
+  try {
+    const res = await fetch('private-data.json', { cache: 'no-store' });
+    if (!res.ok) return false;
+    const d = await res.json();
+    if (!d || typeof d !== 'object') return false;
+    const taken = new Set([...builtinIds(), ...userCards.map(c => c.id)]);
+    privateCards = (Array.isArray(d.cards) ? d.cards : []).map(c => sanitizeCard(c, 'private'))
+      .filter(c => c && !taken.has(c.id));
+    if (d.audio && typeof d.audio === 'object') {
+      for (const [k, v] of Object.entries(d.audio)) if (isAudioString(v)) privateAudio[k] = v;
+    }
+    rebuildCards();
+    return privateCards.length > 0 || Object.keys(privateAudio).length > 0;
+  } catch (e) { return false; }
+}
+
+/* =========================================================
+ * 小工具：按兩次才執行（刪除、重設）
+ * ========================================================= */
+function armTwice(btn, armedText, action) {
+  if (btn.dataset.armed) {
+    clearTimeout(btn._t);
+    delete btn.dataset.armed;
+    action();
+    return;
+  }
+  const orig = btn.textContent;
+  btn.dataset.armed = '1';
+  btn.textContent = armedText;
+  btn.classList.add('armed');
+  btn._t = setTimeout(() => {
+    delete btn.dataset.armed;
+    btn.textContent = orig;
+    btn.classList.remove('armed');
+  }, 5000);
+}
+
+/* =========================================================
+ * F5 新增單字（拼音轉換預覽沿用 romanHTML）
  * ========================================================= */
 const SPECIAL_KEYS = ['ɔ', 'ə', 'ɯ', 'ε', 'ḍ', 'ḅ'];
 const EXAMPLES = [
@@ -1245,12 +1805,109 @@ const EXAMPLES = [
   ['sa.wat2ḍii', '多音節用「.」分隔'],
   ['chɔɔp3', 'ɔɔ → ɔ̄'],
 ];
+const addState = { editId: null };
 
-function setupConverter() {
+function updatePreview() {
+  $('conv-out').innerHTML = romanHTML($('conv-in').value) ||
+    '<span class="muted" style="font-size:18px">（在上方輸入，這裡即時預覽）</span>';
+}
+
+function updateAddBoxes() {
+  const cat = $('a-cat').value;
+  $('a-near-box').hidden = cat !== 'near';
+  $('a-scene-box').hidden = cat !== 'factory';
+}
+
+function fillAddForm(card) {
+  addState.editId = card ? card.id : null;
+  $('conv-in').value = card ? card.roman : '';
+  $('a-thai').value = card ? card.thai : '';
+  $('a-meaning').value = card ? card.meaning : '';
+  $('a-mn').value = card ? card.mnemonic : '';
+  $('a-cat').value = card ? card.category : 'class';
+  $('a-group').value = card ? card.group : '';
+  $('a-scene').value = card && FACTORY_SCENES.includes(card.scene) ? card.scene : '品質';
+  $('a-title').textContent = card ? '編輯單字' : '新增單字';
+  $('a-save').textContent = card ? '💾 儲存修改' : '💾 儲存（進入單字卡第 1 盒）';
+  $('a-cancel').hidden = !card;
+  $('a-msg').innerHTML = '';
+  updateAddBoxes();
+  updatePreview();
+}
+
+function addMsg(kind, text) { $('a-msg').innerHTML = `<div class="msg ${kind}">${esc(text)}</div>`; }
+
+async function submitAddForm() {
+  const roman = $('conv-in').value.trim();
+  const meaning = $('a-meaning').value.trim();
+  const cat = $('a-cat').value;
+  const group = $('a-group').value.trim();
+  if (!roman || !parseRoman(roman).some(t => t.type === 'syl')) { addMsg('err', '請輸入「輸入碼」，例如 kwaa5。'); $('conv-in').focus(); return; }
+  if (!meaning) { addMsg('err', '請輸入中文意思。'); $('a-meaning').focus(); return; }
+  if (cat === 'near' && !group) { addMsg('err', '近音字要填「近音字組」，才能出現在 F1 測驗。'); $('a-group').focus(); return; }
+
+  const editing = addState.editId && userCards.find(c => c.id === addState.editId);
+  const card = sanitizeCard({
+    id: editing ? editing.id : newCardId(), thai: $('a-thai').value, roman, meaning, mnemonic: $('a-mn').value,
+    category: cat, group, scene: $('a-scene').value, verified: true,
+  }, 'user');
+  if (editing) userCards[userCards.indexOf(editing)] = card; else userCards.push(card);
+  if (!editing) store.srs[card.id] = { box: 1, due: dateKey() };      // 新字進第 1 盒，今天就會出現
+  save();
+  rebuildCards();
+  cardsState.day = '';                                                   // 單字卡下次重新組隊列
+  const stored = await IDB.putMany('cards', [publicCard(card)]);
+  if (stored === null && persistOK) warnNoPersist();
+
+  const had = editing ? '已更新' : '已儲存';
+  fillAddForm(null);
+  addMsg('ok', `${had}「${card.meaning}」。` + (editing ? '' : '已加入單字卡第 1 盒，今天就會出現。') +
+    (card.thai ? '' : '（沒填泰文，標示為「無發音」。）'));
+  renderAddList();
+}
+
+function renderAddList() {
+  $('a-group-list').innerHTML = [...new Set([...Object.keys(NEAR_GROUPS),
+    ...ALL_CARDS.filter(c => c.category === 'near' && c.group).map(c => c.group)])]
+    .map(g => `<option value="${esc(g)}">${esc(NEAR_GROUPS[g] || '')}</option>`).join('');
+  $('a-count').textContent = userCards.length ? `（${userCards.length} 個）` : '';
+  $('a-list').innerHTML = userCards.length ? userCards.map(c =>
+    `<div class="card item" data-id="${esc(c.id)}"><div class="info">` +
+    `<div class="rom sm">${romanHTML(c.roman)}</div>` +
+    `<div>${esc(c.meaning)} ${c.thai ? `<span class="thai" lang="th">${esc(c.thai)}</span>` : NOAUDIO}</div>` +
+    `<div class="muted" style="font-size:14px">${esc(tagOf(c))}</div></div>` +
+    `<div class="acts">` +
+    (c.thai ? `<button class="btn" data-aa="play" aria-label="播放">🔊</button>` : '') +
+    `<button class="btn" data-aa="edit">✏️ 編輯</button>` +
+    `<button class="btn danger" data-aa="del">🗑 刪除</button></div></div>`).join('')
+    : '<div class="card"><p class="muted">還沒有。用上面的表單新增第一個字。</p></div>';
+}
+
+function renderAddView() { renderAddList(); }
+
+async function deleteUserCard(id) {
+  const card = userCards.find(c => c.id === id);
+  if (!card) return;
+  userCards = userCards.filter(c => c.id !== id);
+  delete store.srs[id];
+  delete store.stats[id];
+  save();
+  rebuildCards();
+  cardsState.day = '';
+  if (addState.editId === id) fillAddForm(null);
+  // 沒有別的卡用同一個泰文時，一併刪掉該泰文的音檔
+  if (card.thai && has(userAudio, card.thai) && !ALL_CARDS.some(c => c.thai === card.thai)) {
+    delete userAudio[card.thai];
+    await IDB.remove('audio', card.thai);
+  }
+  if ((await IDB.remove('cards', id)) === null && persistOK) warnNoPersist();
+  renderAddList();
+}
+
+function setupAddForm() {
   const input = $('conv-in');
-  const update = () => { $('conv-out').innerHTML = romanHTML(input.value) || '<span class="muted" style="font-size:18px">（在上方輸入）</span>'; };
-  input.addEventListener('input', update);
-  $('conv-keys').innerHTML = SPECIAL_KEYS.map(k => `<button type="button" data-key="${k}">${k}</button>`).join('');
+  input.addEventListener('input', updatePreview);
+  $('conv-keys').innerHTML = SPECIAL_KEYS.map(k => `<button type="button" data-key="${k}" aria-label="輸入 ${k}">${k}</button>`).join('');
   $('conv-keys').addEventListener('click', e => {
     const k = e.target.closest('[data-key]')?.dataset.key;
     if (!k) return;
@@ -1258,27 +1915,214 @@ function setupConverter() {
     input.value = input.value.slice(0, s) + k + input.value.slice(t);
     input.focus();
     input.setSelectionRange(s + k.length, s + k.length);
-    update();
+    updatePreview();
   });
   $('conv-ex').innerHTML = EXAMPLES.map(([code, note]) =>
     `<tr><td><button type="button" data-ex="${esc(code)}"><code>${esc(code)}</code></button></td>` +
     `<td><span class="rom sm">${romanHTML(code)}</span></td><td>${note}</td></tr>`).join('');
   $('conv-ex').addEventListener('click', e => {
     const code = e.target.closest('[data-ex]')?.dataset.ex;
-    if (code) { input.value = code; update(); }
+    if (code) { input.value = code; updatePreview(); }
   });
-  update();
+  $('a-cat').addEventListener('change', updateAddBoxes);
+  $('a-form').addEventListener('submit', e => { e.preventDefault(); submitAddForm(); });
+  $('a-cancel').onclick = () => fillAddForm(null);
+  $('a-list').addEventListener('click', e => {
+    const btn = e.target.closest('[data-aa]');
+    const id = btn?.closest('[data-id]')?.dataset.id;
+    const card = userCards.find(c => c.id === id);
+    if (!card) return;
+    const act = btn.dataset.aa;
+    if (act === 'play') Speech.play([{ text: card.thai }]);
+    else if (act === 'edit') { fillAddForm(card); $('a-form').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    else if (act === 'del') armTwice(btn, '再按一次刪除', () => deleteUserCard(id));
+  });
+  fillAddForm(null);
+}
+
+/* =========================================================
+ * F6 進度與資料管理
+ * ========================================================= */
+let pendingImport = null;
+const pMsg = (kind, text) => { $('p-msg').innerHTML = `<div class="msg ${kind}">${esc(text)}</div>`; };
+
+function renderProgress() {
+  fillStats(['p-due', 'p-acc', 'p-streak']);
+  $('p-cards').textContent = `卡片：內建 ${BUILTIN_CARDS.length} 張` +
+    (privateCards.length ? `・私人資料 ${privateCards.length} 張` : '') +
+    `・我新增或匯入 ${userCards.length} 張・我的音檔 ${Object.keys(userAudio).length} 個`;
+}
+
+function exportData() {
+  const withAudio = $('p-with-audio').checked;
+  const data = {
+    app: 'pasathai-coach', version: 2, exportedAt: new Date().toISOString(),
+    progress: { settings: store.settings, stats: store.stats, daily: store.daily, srs: store.srs },
+    cards: userCards.map(publicCard),
+  };
+  if (withAudio && Object.keys(userAudio).length) data.audio = { ...userAudio };
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pasathai-coach-${dateKey()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  pMsg('ok', `已匯出：${userCards.length} 張自訂卡、${Object.keys(store.srs).length} 筆複習紀錄` +
+    (data.audio ? `、${Object.keys(data.audio).length} 個音檔` : '') + '。');
+}
+
+const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
+const num = v => Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0;
+/** 整理匯入的進度；不合格的項目直接丟掉 */
+function cleanProgress(p) {
+  const out = { stats: {}, daily: {}, srs: {}, settings: {} };
+  if (isObj(p.stats)) for (const [k, v] of Object.entries(p.stats)) if (isObj(v)) out.stats[k] = { right: num(v.right), wrong: num(v.wrong) };
+  if (isObj(p.daily)) for (const [k, v] of Object.entries(p.daily)) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(k) && isObj(v)) out.daily[k] = { right: num(v.right), total: num(v.total), ...(v.cards ? { cards: num(v.cards) } : {}) };
+  }
+  if (isObj(p.srs)) for (const [k, v] of Object.entries(p.srs)) {
+    if (isObj(v) && /^\d{4}-\d{2}-\d{2}$/.test(v.due)) out.srs[k] = { box: Math.min(5, Math.max(1, Math.floor(Number(v.box)) || 1)), due: v.due };
+  }
+  if (isObj(p.settings)) {
+    if (typeof p.settings.showThai === 'boolean') out.settings.showThai = p.settings.showThai;
+    if (p.settings.cardMode === 'zh' || p.settings.cardMode === 'rom') out.settings.cardMode = p.settings.cardMode;
+  }
+  return out;
+}
+
+/** 解析匯入檔（不套用）。回傳 {progress, cards, audio, skipped} 或丟出錯誤 */
+function parseImport(text) {
+  let d;
+  try { d = JSON.parse(text); } catch (e) { throw new Error('這不是有效的 JSON 檔。'); }
+  if (!isObj(d)) throw new Error('檔案內容格式不對。');
+  const taken = new Set([...builtinIds(), ...privateCards.map(c => c.id)]);
+  let skipped = 0;
+  const cards = [];
+  for (const raw of Array.isArray(d.cards) ? d.cards : []) {
+    const c = sanitizeCard(raw, 'user');
+    if (!c || taken.has(c.id)) { skipped++; continue; }
+    cards.push(c);
+  }
+  const audio = {};
+  if (isObj(d.audio)) for (const [k, v] of Object.entries(d.audio)) if (k && isAudioString(v)) audio[k] = v;
+  const progress = isObj(d.progress) ? cleanProgress(d.progress) : null;
+  if (!progress && !cards.length && !Object.keys(audio).length) throw new Error('檔案裡找不到進度、卡片或音檔。');
+  return { progress, cards, audio, skipped };
+}
+
+function showImportPreview(imp) {
+  pendingImport = imp;
+  const parts = [];
+  if (imp.progress) parts.push(`學習進度（${Object.keys(imp.progress.srs).length} 筆複習紀錄、${Object.keys(imp.progress.daily).length} 天紀錄）`);
+  if (imp.cards.length) parts.push(`${imp.cards.length} 張卡片`);
+  if (Object.keys(imp.audio).length) parts.push(`${Object.keys(imp.audio).length} 個音檔`);
+  $('p-import-info').innerHTML = `<div class="msg ok"><p style="margin:0">檔案內容：${parts.join('、')}。` +
+    (imp.skipped ? `（有 ${imp.skipped} 張無法使用或與內建卡片編號重複，已略過。）` : '') + `</p>` +
+    (imp.progress ? `<p style="margin:6px 0 0"><b>套用後會取代這台裝置目前的學習進度。</b></p>` : '') + `</div>` +
+    `<div class="row"><button class="btn primary" id="p-apply">✔ 套用匯入</button>` +
+    `<button class="btn" id="p-cancel-import">取消</button></div>`;
+}
+
+async function applyImport() {
+  const imp = pendingImport;
+  if (!imp) return;
+  pendingImport = null;
+  if (imp.progress) {
+    store.stats = imp.progress.stats;
+    store.daily = imp.progress.daily;
+    store.srs = imp.progress.srs;
+    Object.assign(store.settings, imp.progress.settings);
+    applyThai();
+  }
+  let failed = false;
+  if (imp.cards.length) {
+    for (const c of imp.cards) {
+      const i = userCards.findIndex(x => x.id === c.id);
+      if (i >= 0) userCards[i] = c; else userCards.push(c);
+    }
+    failed = (await IDB.putMany('cards', imp.cards.map(publicCard))) === null || failed;
+  }
+  const audioKeys = Object.keys(imp.audio);
+  if (audioKeys.length) {
+    audioKeys.forEach(k => { userAudio[k] = imp.audio[k]; });
+    failed = (await IDB.putMany('audio', audioKeys.map(k => ({ thai: k, data: imp.audio[k] })))) === null || failed;
+  }
+  save();
+  if (failed && persistOK) warnNoPersist();
+  rebuildCards();
+  cardsState.day = '';
+  $('p-import-info').innerHTML = '';
+  $('p-file').value = '';
+  renderProgress();
+  refreshViews();
+  pMsg('ok', '已匯入。');
+}
+
+async function resetAll() {
+  leaveSpeak();
+  Speech.stop();
+  store.settings = { showThai: true, cardMode: 'zh' };
+  store.stats = {}; store.daily = {}; store.srs = {};
+  save();
+  userCards = [];
+  Object.keys(userAudio).forEach(k => delete userAudio[k]);
+  await Promise.all([IDB.clear('cards'), IDB.clear('audio')]);
+  rebuildCards();
+  cardsState.day = '';
+  speakState.i = 0;
+  applyThai();
+  resetNear();
+  fillAddForm(null);
+  renderProgress();
+  refreshViews();
+  pMsg('ok', '已全部重設。');
+}
+
+function setupProgress() {
+  $('p-export').onclick = exportData;
+  $('p-file').addEventListener('change', async () => {
+    const f = $('p-file').files[0];
+    $('p-import-info').innerHTML = '';
+    pendingImport = null;
+    if (!f) return;
+    try { showImportPreview(parseImport(await f.text())); }
+    catch (e) { $('p-import-info').innerHTML = `<div class="msg err">${esc(e.message || '讀不了這個檔案。')}</div>`; }
+  });
+  $('p-import-info').addEventListener('click', e => {
+    if (e.target.closest('#p-apply')) applyImport();
+    else if (e.target.closest('#p-cancel-import')) { pendingImport = null; $('p-import-info').innerHTML = ''; $('p-file').value = ''; }
+  });
+  $('p-reset').onclick = () => armTwice($('p-reset'), '⚠ 再按一次，確定全部清除', resetAll);
 }
 
 /* =========================================================
  * 啟動
  * ========================================================= */
+const currentView = () => {
+  const id = location.hash.slice(1) || 'home';
+  return NAV.some(n => n.id === id) ? id : 'home';
+};
+/** 資料載入完成（或匯入、重設）後，重畫目前看得到的內容 */
+function refreshViews() {
+  renderHome();
+  renderGroupList();
+  const v = currentView();
+  if (v === 'cards') renderCards();
+  if (v === 'speak') renderSpeak();
+  if (v === 'factory') renderFactory();
+  if (v === 'add') renderAddView();
+  if (v === 'progress') renderProgress();
+}
+
 renderNav();
 renderLegend($('legend'));
 renderLegend($('legend2'));
 fillRoman();
 renderGroupList();
-setupConverter();
+setupAddForm();
+setupProgress();
 applyThai();
 Speech.init();
 
@@ -1294,7 +2138,7 @@ $('q-options').addEventListener('click', e => {
 });
 $('group-list').addEventListener('click', e => {
   const id = e.target.closest('[data-play]')?.dataset.play;
-  const c = CARDS.find(x => x.id === id);
+  const c = ALL_CARDS.find(x => x.id === id);
   if (c) Speech.play([{ text: c.thai }]);
 });
 $('near-result').addEventListener('click', e => {
@@ -1306,11 +2150,22 @@ document.querySelector('[data-view="cards"]').addEventListener('click', e => {
   if (m) { store.settings.cardMode = m; save(); renderCards(); return; }
   const act = e.target.closest('[data-act]')?.dataset.act;
   const c = cardsState.queue[0];
-  if (act && c) Speech.play([{ text: c.thai }], act === 'slow' ? SLOW_RATE : 1);
+  if (act && c && c.thai) Speech.play([{ text: c.thai }], act === 'slow' ? SLOW_RATE : 1);
 });
 $('c-flip').onclick = flipCard;
 $('c-know').onclick = () => answerCard(true);
 $('c-forget').onclick = () => answerCard(false);
+
+$('f-tabs').addEventListener('click', e => {
+  const sc = e.target.closest('[data-scene]')?.dataset.scene;
+  if (sc) { factoryState.scene = sc; renderFactory(); }
+});
+$('f-list').addEventListener('click', e => {
+  const btn = e.target.closest('[data-fa]');
+  const id = btn?.closest('[data-id]')?.dataset.id;
+  const card = ALL_CARDS.find(c => c.id === id);
+  if (card) factoryAction(card, btn.dataset.fa, btn);
+});
 
 $('s-filter').addEventListener('click', e => {
   const k = e.target.closest('[data-cat]')?.dataset.cat;
@@ -1318,11 +2173,21 @@ $('s-filter').addEventListener('click', e => {
 });
 $('s-normal').onclick = () => playSpeak(1);
 $('s-slow').onclick = () => playSpeak(SLOW_RATE);
-$('s-mic').onclick = startRec;
+$('s-rec').onclick = toggleRecorder;
+$('s-cmp').onclick = () => compareMine(true);
+$('s-cmp-mine').onclick = () => compareMine(false);
+$('s-mic').onclick = toggleSR;
 $('s-prev').onclick = () => moveSpeak(-1);
 $('s-next').onclick = () => moveSpeak(1);
 window.addEventListener('hashchange', () => { if (location.hash === '#near') resetNear(); route(); });
 route();
+
+// 先用內建資料顯示，再非同步載入 IndexedDB 與 private-data.json（讀不到就靜默略過）
+(async () => {
+  await loadUserData();
+  const hadPrivate = await loadPrivate();
+  if (userCards.length || hadPrivate) { cardsState.day = ''; refreshViews(); }
+})();
 </script>
 <script>
 /* AUDIO:BEGIN 內建錄音，由 tools/make_audio.py 產生，請勿手動編輯 */
